@@ -1,0 +1,20 @@
+[2026-09-02 23:44:32] [INFO] [evaluate_cli]: === SIH26038 Model Evaluation & Explainability Analysis ===
+[2026-09-02 23:44:32] [INFO] [evaluate_cli]: Using device: cpu
+[2026-09-02 23:44:32] [INFO] [evaluate_cli]: Loading checkpoint weights from: outputs\checkpoints\best_model.pth
+[2026-09-02 23:44:53] [INFO] [evaluate_cli]: === SIH26038 Model Evaluation & Explainability Analysis ===
+[2026-09-02 23:44:53] [INFO] [evaluate_cli]: Using device: cpu
+[2026-09-02 23:44:53] [INFO] [evaluate_cli]: Loading checkpoint weights from: outputs\checkpoints\best_model.pth
+[2026-09-02 23:44:53] [INFO] [evaluate_cli]: Executing validation inference...
+[2026-09-02 23:44:55] [INFO] [evaluate_cli]: Fitting post-hoc temperature scaler for confidence calibration...
+[2026-09-02 23:44:55] [INFO] [evaluate_cli]: Optimal learned temperature T = 2.071
+[2026-09-02 23:44:55] [INFO] [evaluate_cli]: Expected Calibration Error: Before=0.4741, After=0.2156
+[2026-09-02 23:44:55] [INFO] [evaluate_cli]: Saved evaluation metrics JSON to: outputs\evaluation\evaluation_report.json
+[2026-09-02 23:44:55] [INFO] [evaluate_cli]: Generating evaluation diagnostic plots...
+[2026-09-02 23:44:57] [INFO] [evaluate_cli]: Plots saved:
+ - outputs\evaluation\confusion_matrix.png
+ - outputs\evaluation\confusion_matrix_normalized.png
+ - outputs\evaluation\roc_curves.png
+ - outputs\evaluation\pr_curves.png
+ - outputs\evaluation\calibration_curve.png
+[2026-09-02 23:44:57] [INFO] [evaluate_cli]: Generating Grad-CAM overlays for 3 samples...
+[2026-09-02 23:44:59] [INFO] [evaluate_cli]: Successfully generated 3 Grad-CAM overlay heatmaps in: outputs\gradcam

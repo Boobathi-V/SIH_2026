@@ -1,0 +1,18 @@
+[2026-09-02 23:42:57] [INFO] [dr_trainer]: Initialized DRTrainer on device: cpu
+[2026-09-02 23:42:57] [INFO] [dr_trainer]: Loss criterion created: focal (gamma=2.0)
+[2026-09-02 23:42:57] [INFO] [dr_trainer]: Mixed Precision (AMP) enabled: False
+[2026-09-02 23:42:57] [INFO] [dr_trainer]: === Starting Stage 1: freeze_backbone (Freeze Backbone) ===
+[2026-09-02 23:42:57] [INFO] [dr_trainer]: Trainable parameters: 167,173 / 20,344,661
+[2026-09-02 23:43:03] [INFO] [dr_trainer]: Epoch 01 (Stage 1) | LR: 0.001000 | Train Loss: 1.4441 | Val Loss: 1.7976 | Acc: 20.0% | F1: 0.0667 | QWK: 0.0000 | AUC: 0.6625
+[2026-09-02 23:43:03] [INFO] [dr_trainer]: --> [NEW BEST] Validation Macro F1 improved to 0.0667! Saved best_model.pth
+[2026-09-02 23:43:10] [INFO] [dr_trainer]: Epoch 02 (Stage 1) | LR: 0.000909 | Train Loss: 1.7870 | Val Loss: 1.1256 | Acc: 20.0% | F1: 0.0667 | QWK: 0.0000 | AUC: 0.7625
+[2026-09-02 23:43:10] [INFO] [dr_trainer]: Training pipeline execution completed successfully.
+[2026-09-03 18:09:36] [INFO] [dr_trainer]: Initialized DRTrainer on device: cpu
+[2026-09-03 18:09:36] [INFO] [dr_trainer]: Loss criterion created: focal (gamma=2.0)
+[2026-09-03 18:09:36] [INFO] [dr_trainer]: Mixed Precision (AMP) enabled: False
+[2026-09-03 18:09:36] [INFO] [dr_trainer]: === Starting Stage 1: freeze_backbone (Freeze Backbone) ===
+[2026-09-03 18:09:36] [INFO] [dr_trainer]: Trainable parameters: 167,173 / 20,344,661
+[2026-09-03 18:09:42] [INFO] [dr_trainer]: Epoch 01 (Stage 1) | LR: 0.001000 | Train Loss: 1.5735 | Val Loss: 1.4125 | Acc: 20.0% | F1: 0.0667 | QWK: 0.0000 | AUC: 0.4375
+[2026-09-03 18:09:43] [INFO] [dr_trainer]: --> [NEW BEST] Validation Macro F1 improved to 0.0667! Saved best_model.pth
+[2026-09-03 18:09:49] [INFO] [dr_trainer]: Epoch 02 (Stage 1) | LR: 0.000909 | Train Loss: 1.5714 | Val Loss: 1.1029 | Acc: 20.0% | F1: 0.0667 | QWK: 0.0000 | AUC: 0.7875
+[2026-09-03 18:09:49] [INFO] [dr_trainer]: Training pipeline execution completed successfully.

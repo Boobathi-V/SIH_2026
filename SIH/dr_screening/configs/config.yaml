@@ -1,0 +1,78 @@
+# SIH26038 Diabetic Retinopathy Screening System Configuration
+
+project:
+  name: "SIH26038_DR_Screening"
+  seed: 42
+  device: "cuda" # Automatically falls back to cpu if cuda not available
+
+data:
+  dataset_name: "aptos"
+  raw_dir: "datasets/aptos/train_images"
+  csv_path: "datasets/aptos/train.csv"
+  image_size: 384
+  batch_size: 16
+  num_workers: 2
+  val_split: 0.2
+  use_weighted_sampler: false
+
+preprocessing:
+  crop_tolerance: 7
+  clahe_clip_limit: 2.0
+  clahe_grid_size: [8, 8]
+  gamma: 1.15
+  use_ben_graham: true
+  ben_graham_sigma: 10
+
+augmentation:
+  hflip_p: 0.5
+  vflip_p: 0.5
+  rotate_limit: 20
+  brightness_limit: 0.15
+  contrast_limit: 0.15
+  gamma_limit: [85, 115]
+  noise_p: 0.3
+  blur_p: 0.2
+  coarse_dropout_p: 0.2
+  coarse_dropout_holes: 8
+  coarse_dropout_size: 24
+
+model:
+  backbone: "tf_efficientnetv2_s.in21k_ft_in1k"
+  pretrained: true
+  num_classes: 5
+  dropout_rate: 0.3
+  classifier_hidden_dim: 256
+
+loss:
+  type: "focal" # Options: 'focal', 'cross_entropy', 'weighted_ce'
+  focal_gamma: 2.0
+  use_class_weights: true
+
+training:
+  stages:
+    - stage: 1
+      name: "freeze_backbone"
+      epochs: 5
+      lr: 0.001
+      freeze_backbone: true
+    - stage: 2
+      name: "unfreeze_last_blocks"
+      epochs: 10
+      lr: 0.0003
+      unfreeze_ratio: 0.3 # Unfreeze top 30% layers
+    - stage: 3
+      name: "full_finetuning"
+      epochs: 20
+      lr: 0.00005
+      unfreeze_all: true
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  early_stopping_patience: 7
+  mixed_precision: true
+
+paths:
+  checkpoints_dir: "outputs/checkpoints"
+  logs_dir: "outputs/logs"
+  evaluation_dir: "outputs/evaluation"
+  gradcam_dir: "outputs/gradcam"
+  exports_dir: "outputs/exports"
