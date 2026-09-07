@@ -106,16 +106,18 @@ class RetinalAnnotationRenderer:
         # 2. Annotate Confirmed Microaneurysms
         mas = [l for l in lesion_info.get("lesions", []) if l["type"] == "Microaneurysm"]
         if mas:
-            # Draw distinct red/white circles around top microaneurysms
+            # Draw distinct high-contrast circles around top microaneurysms
             for ma in mas[:4]:
                 mx, my = ma["center"]
-                m_rad = max(5, int(ma.get("radius", 4) * scale_factor * 1.5))
+                m_rad = max(8, int(ma.get("radius", 5) * scale_factor * 2.0))
+                # Outer white/yellow ring + Inner vibrant red ring for maximum visibility on retinal fundus
+                draw.ellipse([mx - m_rad - 1, my - m_rad - 1, mx + m_rad + 1, my + m_rad + 1], outline=(255, 255, 255), width=max(1, line_thick - 1))
                 draw.ellipse([mx - m_rad, my - m_rad, mx + m_rad, my + m_rad], outline=(239, 68, 68), width=line_thick)
 
             # Point to the most prominent microaneurysm
             target_ma = mas[0]
             tx, ty = target_ma["center"]
-            lbl_x = max(20, min(w - 240, tx - int(60 * scale_factor)))
+            lbl_x = max(20, min(w - 240, tx - int(80 * scale_factor)))
             lbl_y = max(20, min(h - 40, ty - int(70 * scale_factor)))
             self._draw_leader_line_with_label(
                 draw=draw,

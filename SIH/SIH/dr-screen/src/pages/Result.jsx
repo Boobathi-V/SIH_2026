@@ -236,14 +236,14 @@ function Result() {
           {result.attributions && result.attributions.length > 0 && (
             <div style={{ marginBottom: "20px" }}>
               <span style={{ fontSize: "12px", fontWeight: "700", color: "#475569", textTransform: "uppercase" }}>
-                Lesion Type Contribution Share Towards Diagnosis:
+                Diagnostic Weight & Contribution Share:
               </span>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px", marginTop: "8px" }}>
                 {result.attributions.map((attr, idx) => (
                   <div key={idx} style={{ background: "#ffffff", padding: "12px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "4px" }}>
                       <strong style={{ color: "#0f172a" }}>{attr.type}</strong>
-                      <span style={{ color: "#0284c7", fontWeight: "700" }}>{attr.contribution_pct}%</span>
+                      <span style={{ color: idx === 0 ? "#dc2626" : "#0284c7", fontWeight: "700" }}>{attr.contribution_pct}% Weight</span>
                     </div>
                     <div style={{ width: "100%", height: "6px", background: "#f1f5f9", borderRadius: "9999px", overflow: "hidden" }}>
                       <div
@@ -255,9 +255,14 @@ function Result() {
                         }}
                       />
                     </div>
-                    <span style={{ fontSize: "11px", color: "#64748b", marginTop: "4px", display: "block" }}>
-                      {attr.role} • Count: {attr.count}
-                    </span>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "6px" }}>
+                      <span style={{ fontSize: "11px", color: "#64748b" }}>
+                        {attr.role}
+                      </span>
+                      <span style={{ fontSize: "11px", fontWeight: "600", color: attr.count > 0 ? "#dc2626" : "#64748b", background: attr.count > 0 ? "#fef2f2" : "#f8fafc", padding: "1px 6px", borderRadius: "4px" }}>
+                        Detected: {attr.count} {attr.count === 1 ? "lesion" : "lesions"}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
