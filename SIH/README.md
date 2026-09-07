@@ -57,7 +57,7 @@ The project aligns directly with the official 6-slide deck template (`SIH2026-ID
 | **2** | **Idea Title & Proposed Solution** | Offline CDSS; 5-Pillar Gate, ResNet-50 grading, lesion attribution, 2.0x–3.0x magnification, working prototype visual. |
 | **3** | **Technical Approach** | Full tech stack (PyTorch, OpenCV, FastAPI, React, IndexedDB) + 16:9 System Architecture Diagram. |
 | **4** | **Feasibility & Viability** | 0.886 QWK, 80.0% accuracy, 100% sensitivity on severe DR; risk-mitigation matrix and confusion matrix graphic. |
-| **5** | **Impact & Benefits** | 77M+ rural diabetics, ASHA empowerment, >99% cost reduction (₹1,500 $ightarrow$ <₹10), 1.2s triage, 150k+ PHC reach. |
+| **5** | **Impact & Benefits** | 77M+ rural diabetics, ASHA empowerment, >99% cost reduction (₹1,500 → <₹10), 1.2s triage, 150k+ PHC reach. |
 | **6** | **Research & References** | APTOS 2019 (Aravind Eye Hospital), He et al. ResNet, Selvaraju et al. Grad-CAM, AAO / ICO / ETDRS standards, GitHub repo. |
 
 ---
