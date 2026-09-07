@@ -94,7 +94,7 @@ class OpticDiscDetector:
         best_radius = expected_diam // 2
         max_score = -1.0
 
-        min_area = (np.pi * (expected_diam * 0.2) ** 2)
+        min_area = (np.pi * (expected_diam * 0.08) ** 2)
         max_area = (np.pi * (expected_diam * 1.5) ** 2)
 
         for cnt in contours:
@@ -109,8 +109,13 @@ class OpticDiscDetector:
             cnt_mask = np.zeros((h, w), dtype=np.uint8)
             cv2.drawContours(cnt_mask, [cnt], -1, 255, -1)
             mean_val = cv2.mean(smoothed, mask=cnt_mask)[0]
+            _, max_val, _, _ = cv2.minMaxLoc(smoothed, mask=cnt_mask)
 
-            score = (circularity * 0.4) + (mean_val / 255.0 * 0.6)
+            # Retinal anatomy prior: The optic disc is in the nasal region (lateral sides: x < 0.4*w or x > 0.6*w),
+            # NEVER in the macula / foveal center (x ~ 0.5*w).
+            dist_from_center_x = abs(x - w / 2.0) / (w / 2.0)
+
+            score = (circularity * 0.25) + (mean_val / 255.0 * 0.30) + (max_val / 255.0 * 0.30) + (dist_from_center_x * 0.15)
             if score > max_score:
                 max_score = score
                 best_center = (int(x), int(y))

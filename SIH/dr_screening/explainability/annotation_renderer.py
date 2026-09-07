@@ -86,13 +86,22 @@ class RetinalAnnotationRenderer:
             bbox = [cx - rad, cy - rad, cx + rad, cy + rad]
             draw.ellipse(bbox, outline=(56, 189, 248), width=circle_thick)
 
-            # Place Optic Disc label on the side away from center
-            dx = -1 if cx < w // 2 else 1
-            dy = 1 if cy > h // 2 else -1
+            # Place Optic Disc label inside image boundaries with ample margin for text width
+            # If OD is on right half, point leftwards towards nasal/parenchyma center so text isn't cut off
+            dx = 1 if cx < w // 3 else -1
 
-            start_pt = (cx + int(dx * rad * 0.7), cy + int(dy * rad * 0.7))
-            label_x = max(20, min(w - 220, cx + int(dx * rad * 2.2)))
-            label_y = max(20, min(h - 40, cy + int(dy * rad * 2.5)))
+            start_pt = (cx + int(dx * rad * 0.7), cy - int(rad * 0.5))
+            
+            # Use font bbox to compute actual text width
+            sample_bbox = current_font.getbbox("Eye Nerve Head (Optic Disc)")
+            lbl_text_w = sample_bbox[2] - sample_bbox[0]
+            lbl_text_h = sample_bbox[3] - sample_bbox[1]
+
+            if dx < 0:
+                label_x = max(20, cx - int(rad * 1.5) - lbl_text_w)
+            else:
+                label_x = min(w - lbl_text_w - 20, cx + int(rad * 1.5))
+            label_y = max(20, cy - int(rad * 1.2) - lbl_text_h)
 
             self._draw_leader_line_with_label(
                 draw=draw,
@@ -117,8 +126,10 @@ class RetinalAnnotationRenderer:
             # Point to the most prominent microaneurysm
             target_ma = mas[0]
             tx, ty = target_ma["center"]
-            lbl_x = max(20, min(w - 240, tx - int(80 * scale_factor)))
-            lbl_y = max(20, min(h - 40, ty - int(70 * scale_factor)))
+            sample_bbox = current_font.getbbox("Red Dot (Microaneurysm)")
+            lbl_text_w = sample_bbox[2] - sample_bbox[0]
+            lbl_x = max(20, min(w - lbl_text_w - 20, tx - int(120 * scale_factor)))
+            lbl_y = max(20, min(h - 50, ty - int(70 * scale_factor)))
             self._draw_leader_line_with_label(
                 draw=draw,
                 start_pt=(tx, ty),
@@ -138,8 +149,10 @@ class RetinalAnnotationRenderer:
 
             target_ex = exs[0]
             tx, ty = target_ex["center"]
-            lbl_x = max(20, min(w - 220, tx + int(40 * scale_factor)))
-            lbl_y = max(20, min(h - 40, ty - int(80 * scale_factor)))
+            sample_bbox = current_font.getbbox("Yellow Spot (Hard Exudate)")
+            lbl_text_w = sample_bbox[2] - sample_bbox[0]
+            lbl_x = max(20, min(w - lbl_text_w - 20, tx + int(40 * scale_factor)))
+            lbl_y = max(20, min(h - 50, ty - int(80 * scale_factor)))
             self._draw_leader_line_with_label(
                 draw=draw,
                 start_pt=(tx, ty),
@@ -159,8 +172,10 @@ class RetinalAnnotationRenderer:
 
             target_hm = hms[0]
             tx, ty = target_hm["center"]
-            lbl_x = max(20, min(w - 240, tx + int(60 * scale_factor)))
-            lbl_y = max(20, min(h - 40, ty - int(50 * scale_factor)))
+            sample_bbox = current_font.getbbox("Bleeding Spot (Hemorrhage)")
+            lbl_text_w = sample_bbox[2] - sample_bbox[0]
+            lbl_x = max(20, min(w - lbl_text_w - 20, tx + int(60 * scale_factor)))
+            lbl_y = max(20, min(h - 50, ty - int(50 * scale_factor)))
             self._draw_leader_line_with_label(
                 draw=draw,
                 start_pt=(tx, ty),
@@ -180,8 +195,10 @@ class RetinalAnnotationRenderer:
 
             target_cws = cwss[0]
             tx, ty = target_cws["center"]
-            lbl_x = max(20, min(w - 240, tx - int(100 * scale_factor)))
-            lbl_y = max(20, min(h - 40, ty + int(10 * scale_factor)))
+            sample_bbox = current_font.getbbox("Pale Patch (Cotton Wool Spot)")
+            lbl_text_w = sample_bbox[2] - sample_bbox[0]
+            lbl_x = max(20, min(w - lbl_text_w - 20, tx - int(100 * scale_factor)))
+            lbl_y = max(20, min(h - 50, ty + int(10 * scale_factor)))
             self._draw_leader_line_with_label(
                 draw=draw,
                 start_pt=(tx, ty),
@@ -194,8 +211,14 @@ class RetinalAnnotationRenderer:
         # 7. Annotate Neovascularization if present
         if lesion_info.get("has_neovascularization"):
             od_c = optic_disc_info.get("center", (w // 2, h // 2))
-            lbl_x = max(20, min(w - 220, od_c[0] + int(80 * scale_factor)))
-            lbl_y = max(20, min(h - 40, od_c[1] + int(40 * scale_factor)))
+            sample_bbox = current_font.getbbox("Neovascularization (NVD)")
+            lbl_text_w = sample_bbox[2] - sample_bbox[0]
+            lbl_text_h = sample_bbox[3] - sample_bbox[1]
+            
+            # Point in the direction towards retinal center
+            nv_dx = -1 if od_c[0] > w // 2 else 1
+            lbl_x = max(20, min(w - lbl_text_w - 20, od_c[0] + int(nv_dx * 120 * scale_factor)))
+            lbl_y = max(20, min(h - lbl_text_h - 20, od_c[1] + int(60 * scale_factor)))
             self._draw_leader_line_with_label(
                 draw=draw,
                 start_pt=od_c,
@@ -243,7 +266,7 @@ class RetinalAnnotationRenderer:
         draw.line([(sx, sy), (target_x, target_y)], fill=(255, 255, 255), width=line_width)
 
         # Render clean text with high contrast shadow
-        for off_x, off_y in [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (1, 1), (-1, 1), (1, -1)]:
+        for off_x, off_y in [(-2, 0), (2, 0), (0, -2), (0, 2), (-1, -1), (1, 1), (-1, 1), (1, -1)]:
             draw.text((lx + off_x, ly + off_y), text, font=font, fill=(0, 0, 0))
 
         draw.text((lx, ly), text, font=font, fill=(255, 255, 255))
