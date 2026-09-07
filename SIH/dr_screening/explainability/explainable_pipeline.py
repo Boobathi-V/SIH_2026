@@ -115,9 +115,9 @@ class ExplainableLesionPipeline:
             save_path=str(annotated_path),
         )
 
-        # Generate base64 string for immediate web streaming
-        with open(str(annotated_path), "rb") as f:
-            annotated_base64 = base64.b64encode(f.read()).decode("utf-8")
+        # Generate lightweight base64 string for immediate web streaming (JPEG 85 for fast network transfer & low memory footprint)
+        _, ann_buf = cv2.imencode(".jpg", annotated_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 85])
+        annotated_base64 = base64.b64encode(ann_buf).decode("utf-8")
 
         # 7. Stage 5: Structured Ophthalmology Medical Explanation
         explanation_res = self.explanation_generator.generate(
@@ -128,13 +128,13 @@ class ExplainableLesionPipeline:
             vessel_info=scaled_vessel_info,
         )
 
-        # 8. Stage 6: High-Magnification Zoomed-In Lesion Inspection Crops
+        # 8. Stage 6: High-Magnification Zoomed-In Lesion Inspection Crops (2.7x Optical Zoom, 480px Large Box)
         zoomed_crops = self.generate_zoomed_crops(
             img_bgr=img_bgr,
             od_info=scaled_od_info,
             lesion_info=scaled_lesion_info,
             dominant_lesion=explanation_res.get("dominant_lesion", ""),
-            output_dim=320,
+            output_dim=480,
         )
 
         total_elapsed = round(time.time() - start_time, 3)
@@ -168,110 +168,108 @@ class ExplainableLesionPipeline:
         od_info: Dict[str, Any],
         lesion_info: Dict[str, Any],
         dominant_lesion: str,
-        output_dim: int = 320,
+        output_dim: int = 480,
     ) -> List[Dict[str, Any]]:
-        """Generate high-magnification zoomed-in ROI crops for detected lesion types."""
+        """Generate 2.7x optical zoom ROI crops for detected lesion types."""
         crops = []
         lesions = lesion_info.get("lesions", [])
+        h, w = img_bgr.shape[:2]
 
-        # 1. Zoomed crop for Hard Exudates
+        # 2.7x Optical Zoom: field of view radius = min(h, w) / (2.7 * 2) = min(h, w) / 5.4
+        default_zoom_rad = max(45, int(min(h, w) / 5.4))
+
+        # 1. Zoomed crop for Hard Exudates (2.7x Optical Zoom)
         exs = [l for l in lesions if l["type"] == "Hard Exudate"]
         if exs:
             target = max(exs, key=lambda x: x.get("area", 0))
             cx, cy = target["center"]
-            crop_rad = max(35, min(80, int(target.get("bbox", (0, 0, 30, 30))[2] * 1.8)))
             is_dom = ("Hard Exudate" in dominant_lesion)
             crop_b64 = self._create_magnified_roi(
-                img_bgr, cx, cy, crop_rad, output_dim,
-                label="3.5x Zoom: Hard Exudate",
+                img_bgr, cx, cy, default_zoom_rad, output_dim,
+                label="2.7x Zoom: Hard Exudates",
             )
             crops.append({
                 "type": "Hard Exudate",
                 "is_primary": is_dom,
                 "title": "Primary Driver: Hard Exudates" if is_dom else "Hard Exudate Cluster",
-                "magnification": "3.5x Optical Zoom",
+                "magnification": "2.7x Optical Zoom",
                 "center": [cx, cy],
                 "image_base64": crop_b64,
                 "description": "Dense yellowish intraretinal lipid deposits indicating chronic capillary hyperpermeability.",
             })
 
-        # 2. Zoomed crop for Microaneurysms
+        # 2. Zoomed crop for Microaneurysms (2.7x Optical Zoom)
         mas = [l for l in lesions if l["type"] == "Microaneurysm"]
         if mas:
             target = max(mas, key=lambda x: x.get("confidence", 0))
             cx, cy = target["center"]
-            crop_rad = 30
             is_dom = ("Microaneurysm" in dominant_lesion)
             crop_b64 = self._create_magnified_roi(
-                img_bgr, cx, cy, crop_rad, output_dim,
-                label="5.0x Zoom: Microaneurysm",
+                img_bgr, cx, cy, default_zoom_rad, output_dim,
+                label="2.7x Zoom: Microaneurysm",
             )
             crops.append({
                 "type": "Microaneurysm",
                 "is_primary": is_dom,
                 "title": "Primary Driver: Microaneurysm" if is_dom else "Capillary Microaneurysm",
-                "magnification": "5.0x Optical Zoom",
+                "magnification": "2.7x Optical Zoom",
                 "center": [cx, cy],
                 "image_base64": crop_b64,
                 "description": "Focal punctate capillary outpouching displaying classic spherical red-dot morphology.",
             })
 
-        # 3. Zoomed crop for Hemorrhages
+        # 3. Zoomed crop for Hemorrhages (2.7x Optical Zoom)
         hms = [l for l in lesions if l["type"] == "Hemorrhage"]
         if hms:
             target = max(hms, key=lambda x: x.get("area", 0))
             cx, cy = target["center"]
-            crop_rad = max(40, min(85, int(target.get("bbox", (0, 0, 40, 40))[2] * 1.5)))
             is_dom = ("Hemorrhage" in dominant_lesion)
             crop_b64 = self._create_magnified_roi(
-                img_bgr, cx, cy, crop_rad, output_dim,
-                label="3.2x Zoom: Blot Hemorrhage",
+                img_bgr, cx, cy, default_zoom_rad, output_dim,
+                label="2.7x Zoom: Blot Hemorrhage",
             )
             crops.append({
                 "type": "Hemorrhage",
                 "is_primary": is_dom,
                 "title": "Primary Driver: Blot Hemorrhage" if is_dom else "Intraretinal Blot Hemorrhage",
-                "magnification": "3.2x Optical Zoom",
+                "magnification": "2.7x Optical Zoom",
                 "center": [cx, cy],
                 "image_base64": crop_b64,
                 "description": "Deep intraretinal hemorrhage resulting from capillary wall disruption.",
             })
 
-        # 4. Zoomed crop for Cotton Wool Spots
+        # 4. Zoomed crop for Cotton Wool Spots (2.7x Optical Zoom)
         cwss = [l for l in lesions if l["type"] == "Cotton Wool Spot"]
         if cwss:
             target = max(cwss, key=lambda x: x.get("area", 0))
             cx, cy = target["center"]
-            crop_rad = max(45, min(90, int(target.get("bbox", (0, 0, 50, 50))[2] * 1.4)))
             is_dom = ("Cotton Wool" in dominant_lesion)
             crop_b64 = self._create_magnified_roi(
-                img_bgr, cx, cy, crop_rad, output_dim,
-                label="3.0x Zoom: Cotton Wool Spot",
+                img_bgr, cx, cy, default_zoom_rad, output_dim,
+                label="2.7x Zoom: Cotton Wool Spot",
             )
             crops.append({
                 "type": "Cotton Wool Spot",
                 "is_primary": is_dom,
                 "title": "Cotton Wool Spot (Soft Exudate)",
-                "magnification": "3.0x Optical Zoom",
+                "magnification": "2.7x Optical Zoom",
                 "center": [cx, cy],
                 "image_base64": crop_b64,
                 "description": "Pale, fluffy nerve fiber layer micro-infarct caused by precapillary arteriolar occlusion.",
             })
 
-        # 5. Zoomed crop for Optic Disc
+        # 5. Zoomed crop for Optic Disc (2.7x Anatomical Zoom)
         if od_info.get("detected"):
             cx, cy = od_info["center"]
-            rad = od_info.get("radius", 40)
-            crop_rad = int(rad * 1.45)
             crop_b64 = self._create_magnified_roi(
-                img_bgr, cx, cy, crop_rad, output_dim,
-                label="2.2x Zoom: Optic Disc",
+                img_bgr, cx, cy, default_zoom_rad, output_dim,
+                label="2.7x Zoom: Optic Disc Margin",
             )
             crops.append({
                 "type": "Optic Disc",
                 "is_primary": False,
                 "title": "Optic Nerve Head & Margin",
-                "magnification": "2.2x Anatomical Zoom",
+                "magnification": "2.7x Anatomical Zoom",
                 "center": [cx, cy],
                 "image_base64": crop_b64,
                 "description": "Anatomically localized optic disc; safely isolated to avoid misinterpretation as an exudate.",
@@ -288,35 +286,58 @@ class ExplainableLesionPipeline:
         output_dim: int,
         label: str,
     ) -> str:
-        """Helper to crop, upscale with Lanczos, draw targeting ring, and return base64."""
+        """Helper to crop, upscale with Lanczos-4, draw targeting reticle, and return base64."""
         h, w = img_bgr.shape[:2]
         x1, y1 = max(0, cx - crop_rad), max(0, cy - crop_rad)
         x2, y2 = min(w, cx + crop_rad), min(h, cy + crop_rad)
         roi = img_bgr[y1:y2, x1:x2].copy()
 
+        # Pad if near edge to guarantee exact 1:1 square aspect ratio
+        rh, rw = roi.shape[:2]
+        target_size = crop_rad * 2
+        if rh != target_size or rw != target_size:
+            pad_top = max(0, crop_rad - cy)
+            pad_bottom = max(0, (cy + crop_rad) - h)
+            pad_left = max(0, crop_rad - cx)
+            pad_right = max(0, (cx + crop_rad) - w)
+            roi = cv2.copyMakeBorder(
+                roi, pad_top, pad_bottom, pad_left, pad_right,
+                cv2.BORDER_CONSTANT, value=[10, 10, 10]
+            )
+
         magnified = cv2.resize(roi, (output_dim, output_dim), interpolation=cv2.INTER_LANCZOS4)
 
         center_m = output_dim // 2
-        reticle_r = int(output_dim * 0.22)
-        cv2.circle(magnified, (center_m, center_m), reticle_r, (255, 255, 255), 2, lineType=cv2.LINE_AA)
-        cv2.circle(magnified, (center_m, center_m), 3, (255, 255, 255), -1, lineType=cv2.LINE_AA)
+        reticle_r = int(output_dim * 0.18)
 
+        # Draw precision targeting reticle with center cyan dot
+        cv2.circle(magnified, (center_m, center_m), reticle_r, (255, 255, 255), 2, lineType=cv2.LINE_AA)
+        cv2.circle(magnified, (center_m, center_m), 4, (0, 230, 255), -1, lineType=cv2.LINE_AA)
+
+        # Crosshair tick marks
+        tick = 14
+        cv2.line(magnified, (center_m, center_m - reticle_r - 3), (center_m, center_m - reticle_r - 3 - tick), (255, 255, 255), 2, lineType=cv2.LINE_AA)
+        cv2.line(magnified, (center_m, center_m + reticle_r + 3), (center_m, center_m + reticle_r + 3 + tick), (255, 255, 255), 2, lineType=cv2.LINE_AA)
+        cv2.line(magnified, (center_m - reticle_r - 3, center_m), (center_m - reticle_r - 3 - tick, center_m), (255, 255, 255), 2, lineType=cv2.LINE_AA)
+        cv2.line(magnified, (center_m + reticle_r + 3, center_m), (center_m + reticle_r + 3 + tick, center_m), (255, 255, 255), 2, lineType=cv2.LINE_AA)
+
+        # Sleek dark bottom label banner
         overlay = magnified.copy()
-        cv2.rectangle(overlay, (0, output_dim - 36), (output_dim, output_dim), (15, 23, 42), -1)
-        cv2.addWeighted(overlay, 0.82, magnified, 0.18, 0, magnified)
+        cv2.rectangle(overlay, (0, output_dim - 38), (output_dim, output_dim), (15, 23, 42), -1)
+        cv2.addWeighted(overlay, 0.85, magnified, 0.15, 0, magnified)
 
         cv2.putText(
             magnified,
             label,
-            (10, output_dim - 12),
+            (12, output_dim - 13),
             cv2.FONT_HERSHEY_SIMPLEX,
-            0.50,
+            0.52,
             (255, 255, 255),
             1,
             cv2.LINE_AA,
         )
 
-        _, buffer = cv2.imencode(".jpg", magnified, [int(cv2.IMWRITE_JPEG_QUALITY), 95])
+        _, buffer = cv2.imencode(".jpg", magnified, [int(cv2.IMWRITE_JPEG_QUALITY), 85])
         return base64.b64encode(buffer).decode("utf-8")
 
     def _scale_od_info(self, od_info: Dict[str, Any], sx: float, sy: float) -> Dict[str, Any]:

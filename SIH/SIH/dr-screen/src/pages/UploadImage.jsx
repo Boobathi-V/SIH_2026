@@ -1,9 +1,10 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { validateImageQuality } from "../api";
+import { saveUploadedPreview, getSyncUploadedImage } from "../storage";
 
 function UploadImage() {
-  const [imagePreview, setImagePreview] = useState(sessionStorage.getItem("retina_preview") || null);
+  const [imagePreview, setImagePreview] = useState(getSyncUploadedImage() || null);
   const [fileName, setFileName] = useState(sessionStorage.getItem("retina_filename") || "");
   const [isDragOver, setIsDragOver] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
@@ -39,12 +40,11 @@ function UploadImage() {
     }
 
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       const base64 = reader.result;
       setImagePreview(base64);
       setFileName(file.name);
-      sessionStorage.setItem("retina_preview", base64);
-      sessionStorage.setItem("retina_filename", file.name);
+      await saveUploadedPreview(base64, file.name);
     };
     reader.readAsDataURL(file);
   }

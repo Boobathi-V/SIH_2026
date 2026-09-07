@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { predictFundusImage } from "../api";
+import { saveScreeningSession, getSyncUploadedImage } from "../storage";
 
 function Analysis() {
   const [progress, setProgress] = useState(15);
@@ -10,7 +11,7 @@ function Analysis() {
   const hasTriggeredRef = useRef(false);
   const navigate = useNavigate();
 
-  const previewSrc = sessionStorage.getItem("retina_preview");
+  const previewSrc = getSyncUploadedImage();
   const fileName = sessionStorage.getItem("retina_filename") || "retina.png";
 
   function dataURLtoBlob(dataurl) {
@@ -66,8 +67,8 @@ function Analysis() {
         setProgress(100);
         setCurrentStage("Calibrating clinical confidence. Finalizing report...");
 
-        localStorage.setItem("screening_result", JSON.stringify(result));
-        localStorage.setItem("uploaded_image", previewSrc);
+        // Save screening session safely using IndexedDB and in-memory cache (quota-safe)
+        await saveScreeningSession(result, previewSrc);
 
         setTimeout(() => {
           navigate("/result");

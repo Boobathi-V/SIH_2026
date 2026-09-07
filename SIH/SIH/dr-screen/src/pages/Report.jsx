@@ -1,13 +1,23 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { resolveHeatmapUrl, resolveAnnotatedUrl } from "../api";
+import { getSyncScreeningResult, getSyncUploadedImage, idbGet } from "../storage";
 
 function Report() {
   const navigate = useNavigate();
 
   const patient = JSON.parse(localStorage.getItem("patient") || "{}");
-  const rawResult = localStorage.getItem("screening_result");
-  const result = rawResult ? JSON.parse(rawResult) : null;
-  const originalImage = localStorage.getItem("uploaded_image");
+  const [result, setResult] = useState(() => getSyncScreeningResult() || null);
+  const [originalImage, setOriginalImage] = useState(() => getSyncUploadedImage() || null);
+
+  useEffect(() => {
+    idbGet("screening_result").then((stored) => {
+      if (stored) setResult(stored);
+    });
+    idbGet("uploaded_image").then((stored) => {
+      if (stored) setOriginalImage(stored);
+    });
+  }, []);
 
   const heatmapSrc = result?.heatmap_base64
     ? `data:image/jpeg;base64,${result.heatmap_base64}`

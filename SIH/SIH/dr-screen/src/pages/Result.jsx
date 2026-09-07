@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { getSyncScreeningResult, idbGet } from "../storage";
 
 const STAGE_LABELS = [
   "Class 0: No DR",
@@ -14,18 +15,21 @@ function Result() {
   const [selectedCropIndex, setSelectedCropIndex] = useState(0);
 
   const patient = JSON.parse(localStorage.getItem("patient") || "{}");
-  const rawResult = localStorage.getItem("screening_result");
-  const result = rawResult
-    ? JSON.parse(rawResult)
-    : {
-        prediction: "No Data",
-        class_index: 0,
-        confidence: 0,
-        probabilities: [0.2, 0.2, 0.2, 0.2, 0.2],
-        risk_level: "None",
-        clinical_severity: "No Screening Performed",
-        recommended_action: "Please upload a fundus image to run analysis.",
-      };
+  const [result, setResult] = useState(() => getSyncScreeningResult() || {
+    prediction: "No Data",
+    class_index: 0,
+    confidence: 0,
+    probabilities: [0.2, 0.2, 0.2, 0.2, 0.2],
+    risk_level: "None",
+    clinical_severity: "No Screening Performed",
+    recommended_action: "Please upload a fundus image to run analysis.",
+  });
+
+  useEffect(() => {
+    idbGet("screening_result").then((stored) => {
+      if (stored) setResult(stored);
+    });
+  }, []);
 
   const confidencePercent = Math.round((result.confidence || 0) * 100);
 
@@ -259,39 +263,41 @@ function Result() {
             </div>
           )}
 
-          {/* HIGH-MAGNIFICATION ZOOMED-IN LESION INSPECTION GALLERY */}
+          {/* HIGH-MAGNIFICATION ZOOMED-IN LESION INSPECTION GALLERY (LARGE 480px BOX, 2.7x ZOOM) */}
           {zoomedCrops.length > 0 && (
-            <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: "18px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
+            <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: "20px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
                 <div>
-                  <h4 style={{ fontSize: "15px", color: "#0f172a", margin: 0, fontWeight: "700" }}>
-                    🔍 High-Magnification Lesion Close-Up (Optical Zoom)
+                  <h4 style={{ fontSize: "16px", color: "#0f172a", margin: 0, fontWeight: "700" }}>
+                    🔍 High-Magnification Lesion Close-Up (2.7x Optical Zoom)
                   </h4>
-                  <p style={{ fontSize: "12px", color: "#64748b", margin: "2px 0 0 0" }}>
-                    Optical crop centered on detected lesion morphology with targeting reticle.
+                  <p style={{ fontSize: "12.5px", color: "#64748b", margin: "3px 0 0 0" }}>
+                    Expanded large-format optical crop centered on detected lesion morphology with targeting reticle.
                   </p>
                 </div>
 
                 {/* Crop Switcher Tabs */}
-                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                   {zoomedCrops.map((crop, idx) => (
                     <button
                       key={idx}
                       type="button"
                       onClick={() => setSelectedCropIndex(idx)}
                       style={{
-                        padding: "5px 12px",
-                        fontSize: "12px",
+                        padding: "6px 14px",
+                        fontSize: "12.5px",
                         fontWeight: "600",
-                        borderRadius: "6px",
-                        border: "1px solid",
+                        borderRadius: "8px",
+                        border: "1.5px solid",
                         cursor: "pointer",
+                        transition: "all 0.15s ease",
                         borderColor: selectedCropIndex === idx ? "var(--primary)" : "#cbd5e1",
-                        background: selectedCropIndex === idx ? "#e0f2fe" : "#ffffff",
-                        color: selectedCropIndex === idx ? "#0369a1" : "#475569",
+                        background: selectedCropIndex === idx ? "#0284c7" : "#ffffff",
+                        color: selectedCropIndex === idx ? "#ffffff" : "#334155",
+                        boxShadow: selectedCropIndex === idx ? "0 2px 8px rgba(2, 132, 199, 0.25)" : "none",
                       }}
                     >
-                      {crop.type} {crop.is_primary && "★"}
+                      {crop.type} {crop.is_primary && "★ (Primary Driver)"}
                     </button>
                   ))}
                 </div>
@@ -301,55 +307,163 @@ function Result() {
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "240px 1fr",
-                    gap: "18px",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
+                    gap: "24px",
                     background: "#ffffff",
-                    padding: "16px",
-                    borderRadius: "8px",
+                    padding: "20px",
+                    borderRadius: "12px",
                     border: "1px solid #cbd5e1",
-                    alignItems: "center",
+                    alignItems: "stretch",
+                    boxShadow: "0 4px 14px rgba(15, 23, 42, 0.04)",
                   }}
                 >
+                  {/* LARGE 480px INSPECTION VIEWPORT */}
                   <div
                     style={{
-                      width: "240px",
-                      height: "240px",
-                      background: "#090d16",
-                      borderRadius: "8px",
+                      width: "100%",
+                      maxWidth: "480px",
+                      aspectRatio: "1 / 1",
+                      minHeight: "380px",
+                      background: "#070b14",
+                      borderRadius: "12px",
                       overflow: "hidden",
-                      border: "2px solid #0f172a",
+                      border: "2px solid #1e293b",
+                      position: "relative",
+                      boxShadow: "0 8px 24px rgba(0, 0, 0, 0.25)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      margin: "0 auto",
                     }}
                   >
                     <img
                       src={`data:image/jpeg;base64,${activeCrop.image_base64}`}
                       alt={activeCrop.title}
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                     />
+
+                    {/* Floating Magnification Badge inside Large Box */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "14px",
+                        left: "14px",
+                        background: "rgba(15, 23, 42, 0.88)",
+                        backdropFilter: "blur(6px)",
+                        color: "#38bdf8",
+                        padding: "5px 12px",
+                        borderRadius: "6px",
+                        fontSize: "12px",
+                        fontWeight: "700",
+                        border: "1px solid rgba(56, 189, 248, 0.4)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#38bdf8", display: "inline-block" }}></span>
+                      2.7x Optical Zoom
+                    </div>
+
+                    {/* Floating Centroid Coordinates Badge inside Large Box */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "14px",
+                        right: "14px",
+                        background: "rgba(15, 23, 42, 0.88)",
+                        backdropFilter: "blur(6px)",
+                        color: "#f1f5f9",
+                        padding: "5px 12px",
+                        borderRadius: "6px",
+                        fontSize: "11.5px",
+                        fontWeight: "600",
+                        border: "1px solid rgba(148, 163, 184, 0.3)",
+                      }}
+                    >
+                      Centroid: X: {activeCrop.center?.[0]}px • Y: {activeCrop.center?.[1]}px
+                    </div>
+
+                    {/* Bottom Status Ribbon */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        bottom: "10px",
+                        left: "14px",
+                        right: "14px",
+                        background: "rgba(15, 23, 42, 0.78)",
+                        backdropFilter: "blur(4px)",
+                        padding: "4px 10px",
+                        borderRadius: "4px",
+                        fontSize: "11px",
+                        color: "#94a3b8",
+                        display: "flex",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <span>Lanczos-4 Subpixel Interpolation</span>
+                      <span style={{ color: "#38bdf8" }}>Target Reticle Centered</span>
+                    </div>
                   </div>
 
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
-                      <span style={{ fontSize: "11px", fontWeight: "700", background: "#fef3c7", color: "#92400e", padding: "2px 8px", borderRadius: "4px", border: "1px solid #fde68a" }}>
-                        {activeCrop.magnification}
-                      </span>
-                      {activeCrop.is_primary && (
-                        <span style={{ fontSize: "11px", fontWeight: "700", background: "#fee2e2", color: "#991b1b", padding: "2px 8px", borderRadius: "4px" }}>
-                          Primary Contributor ({result.dominant_contribution_pct}%)
+                  {/* COMPANION CLINICAL PATHOLOGY DETAILS */}
+                  <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px", flexWrap: "wrap" }}>
+                        <span style={{ fontSize: "11px", fontWeight: "700", background: "#fef3c7", color: "#92400e", padding: "3px 10px", borderRadius: "4px", border: "1px solid #fde68a" }}>
+                          2.7x Optical Magnification
                         </span>
-                      )}
+                        {activeCrop.is_primary ? (
+                          <span style={{ fontSize: "11px", fontWeight: "700", background: "#fee2e2", color: "#991b1b", padding: "3px 10px", borderRadius: "4px", border: "1px solid #fecaca" }}>
+                            ★ Primary Contributor ({result.dominant_contribution_pct}%)
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: "11px", fontWeight: "600", background: "#f1f5f9", color: "#475569", padding: "3px 10px", borderRadius: "4px" }}>
+                            Secondary Lesion Biomarker
+                          </span>
+                        )}
+                      </div>
+
+                      <h4 style={{ fontSize: "20px", color: "#0f172a", margin: "0 0 10px 0" }}>
+                        {activeCrop.title}
+                      </h4>
+
+                      <p style={{ fontSize: "14px", color: "#334155", lineHeight: "1.65", margin: "0 0 16px 0" }}>
+                        {activeCrop.description}
+                      </p>
+
+                      {/* Morphological Criteria Card */}
+                      <div style={{ background: "#f8fafc", padding: "14px", borderRadius: "8px", border: "1px solid #e2e8f0", marginBottom: "16px" }}>
+                        <span style={{ fontSize: "11.5px", fontWeight: "700", color: "#0369a1", textTransform: "uppercase" }}>
+                          Clinical Diagnostic Assessment
+                        </span>
+                        <p style={{ fontSize: "13px", color: "#475569", lineHeight: "1.6", margin: "6px 0 0 0" }}>
+                          {activeCrop.is_primary
+                            ? result.dominant_reason || "This lesion pattern constitutes the primary anatomical discriminator determining the diagnosed severity tier under AAO/ICO international classification standards."
+                            : "Concurrent lesion manifestation providing supporting evidence of widespread retinal capillary hyperpermeability and vascular basement membrane deterioration."}
+                        </p>
+                      </div>
+
+                      <div style={{ fontSize: "12px", color: "#64748b" }}>
+                        <p style={{ margin: "3px 0" }}>
+                          <strong>Target Coordinates:</strong> X: {activeCrop.center?.[0]}px, Y: {activeCrop.center?.[1]}px in original fundus image.
+                        </p>
+                        <p style={{ margin: "3px 0" }}>
+                          <strong>Magnification Factor:</strong> 2.7x Optical Zoom (Expanded Field of View).
+                        </p>
+                      </div>
                     </div>
-                    <h4 style={{ fontSize: "17px", color: "#0f172a", margin: "0 0 8px 0" }}>
-                      {activeCrop.title}
-                    </h4>
-                    <p style={{ fontSize: "13.5px", color: "#334155", lineHeight: "1.6", margin: "0 0 12px 0" }}>
-                      {activeCrop.description}
-                    </p>
-                    <p style={{ fontSize: "12px", color: "#64748b", margin: 0 }}>
-                      <strong>Target Coordinates:</strong> X: {activeCrop.center?.[0]}px, Y: {activeCrop.center?.[1]}px in original fundus frame.
-                    </p>
+
+                    <div style={{ paddingTop: "16px" }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        style={{ width: "100%", fontSize: "13px", padding: "9px 16px" }}
+                        onClick={() => navigate("/explain")}
+                      >
+                        🔍 Open Full-Resolution Interactive XAI Canvas →
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}

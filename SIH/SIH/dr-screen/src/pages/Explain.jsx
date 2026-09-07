@@ -1,6 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { resolveHeatmapUrl, resolveAnnotatedUrl } from "../api";
+import { getSyncScreeningResult, getSyncUploadedImage, idbGet } from "../storage";
 
 function Explain() {
   const navigate = useNavigate();
@@ -13,9 +14,17 @@ function Explain() {
   const [loupePos, setLoupePos] = useState({ x: 0, y: 0, show: false });
   const imageContainerRef = useRef(null);
 
-  const rawResult = localStorage.getItem("screening_result");
-  const result = rawResult ? JSON.parse(rawResult) : null;
-  const originalImage = localStorage.getItem("uploaded_image");
+  const [result, setResult] = useState(() => getSyncScreeningResult() || null);
+  const [originalImage, setOriginalImage] = useState(() => getSyncUploadedImage() || null);
+
+  useEffect(() => {
+    idbGet("screening_result").then((stored) => {
+      if (stored) setResult(stored);
+    });
+    idbGet("uploaded_image").then((stored) => {
+      if (stored) setOriginalImage(stored);
+    });
+  }, []);
 
   const heatmapSrc = result?.heatmap_base64
     ? `data:image/jpeg;base64,${result.heatmap_base64}`
@@ -283,23 +292,23 @@ function Explain() {
                 <span style={{ color: "#64748b" }}>No annotated image available</span>
               )}
 
-              {/* Interactive 3x Magnifying Loupe */}
+              {/* Interactive 2.7x Magnifying Loupe */}
               {loupeActive && loupePos.show && annotatedSrc && (
                 <div
                   style={{
                     position: "absolute",
-                    left: `${loupePos.x - 75}px`,
-                    top: `${loupePos.y - 75}px`,
-                    width: "150px",
-                    height: "150px",
+                    left: `${loupePos.x - 80}px`,
+                    top: `${loupePos.y - 80}px`,
+                    width: "160px",
+                    height: "160px",
                     borderRadius: "50%",
                     border: "3px solid #38bdf8",
-                    boxShadow: "0 4px 20px rgba(0,0,0,0.6)",
+                    boxShadow: "0 6px 24px rgba(0,0,0,0.65)",
                     pointerEvents: "none",
                     backgroundImage: `url(${annotatedSrc})`,
                     backgroundRepeat: "no-repeat",
-                    backgroundSize: `${loupePos.width * 2.8}px ${loupePos.height * 2.8}px`,
-                    backgroundPosition: `-${loupePos.x * 2.8 - 75}px -${loupePos.y * 2.8 - 75}px`,
+                    backgroundSize: `${loupePos.width * 2.7}px ${loupePos.height * 2.7}px`,
+                    backgroundPosition: `-${loupePos.x * 2.7 - 80}px -${loupePos.y * 2.7 - 80}px`,
                     backgroundColor: "#000",
                     zIndex: 20,
                   }}
@@ -307,18 +316,20 @@ function Explain() {
                   <div
                     style={{
                       position: "absolute",
-                      bottom: "6px",
+                      bottom: "8px",
                       left: "50%",
                       transform: "translateX(-50%)",
-                      background: "rgba(15,23,42,0.85)",
+                      background: "rgba(15,23,42,0.90)",
                       color: "#38bdf8",
-                      fontSize: "10px",
+                      fontSize: "11px",
                       fontWeight: "700",
-                      padding: "1px 6px",
+                      padding: "2px 8px",
                       borderRadius: "4px",
+                      whiteSpace: "nowrap",
+                      border: "1px solid rgba(56, 189, 248, 0.4)",
                     }}
                   >
-                    3x Magnifier
+                    2.7x Optical Magnifier
                   </div>
                 </div>
               )}
@@ -484,55 +495,139 @@ function Explain() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "280px 1fr",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
                   gap: "24px",
-                  background: "#f8fafc",
+                  background: "#ffffff",
                   padding: "20px",
-                  borderRadius: "8px",
-                  border: "1px solid #e2e8f0",
-                  alignItems: "center",
+                  borderRadius: "12px",
+                  border: "1px solid #cbd5e1",
+                  alignItems: "stretch",
+                  boxShadow: "0 4px 14px rgba(15, 23, 42, 0.04)",
                 }}
               >
+                {/* LARGE 480px INSPECTION VIEWPORT */}
                 <div
                   style={{
-                    width: "280px",
-                    height: "280px",
-                    background: "#090d16",
-                    borderRadius: "8px",
+                    width: "100%",
+                    maxWidth: "480px",
+                    aspectRatio: "1 / 1",
+                    minHeight: "380px",
+                    background: "#070b14",
+                    borderRadius: "12px",
                     overflow: "hidden",
-                    border: "2px solid #0f172a",
+                    border: "2px solid #1e293b",
+                    position: "relative",
+                    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.25)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                    margin: "0 auto",
                   }}
                 >
                   <img
                     src={`data:image/jpeg;base64,${activeCrop.image_base64}`}
                     alt={activeCrop.title}
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                   />
+
+                  {/* Floating Magnification Badge inside Large Box */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "14px",
+                      left: "14px",
+                      background: "rgba(15, 23, 42, 0.88)",
+                      backdropFilter: "blur(6px)",
+                      color: "#38bdf8",
+                      padding: "5px 12px",
+                      borderRadius: "6px",
+                      fontSize: "12px",
+                      fontWeight: "700",
+                      border: "1px solid rgba(56, 189, 248, 0.4)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#38bdf8", display: "inline-block" }}></span>
+                    2.7x Optical Zoom
+                  </div>
+
+                  {/* Floating Centroid Coordinates Badge inside Large Box */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "14px",
+                      right: "14px",
+                      background: "rgba(15, 23, 42, 0.88)",
+                      backdropFilter: "blur(6px)",
+                      color: "#f1f5f9",
+                      padding: "5px 12px",
+                      borderRadius: "6px",
+                      fontSize: "11.5px",
+                      fontWeight: "600",
+                      border: "1px solid rgba(148, 163, 184, 0.3)",
+                    }}
+                  >
+                    Centroid: X: {activeCrop.center?.[0]}px • Y: {activeCrop.center?.[1]}px
+                  </div>
+
+                  {/* Bottom Status Ribbon */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      bottom: "10px",
+                      left: "14px",
+                      right: "14px",
+                      background: "rgba(15, 23, 42, 0.78)",
+                      backdropFilter: "blur(4px)",
+                      padding: "4px 10px",
+                      borderRadius: "4px",
+                      fontSize: "11px",
+                      color: "#94a3b8",
+                      display: "flex",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <span>Lanczos-4 Subpixel Interpolation</span>
+                    <span style={{ color: "#38bdf8" }}>Target Reticle Centered</span>
+                  </div>
                 </div>
 
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                    <span style={{ fontSize: "12px", fontWeight: "700", background: "#fef3c7", color: "#92400e", padding: "3px 10px", borderRadius: "4px", border: "1px solid #fde68a" }}>
-                      {activeCrop.magnification}
-                    </span>
-                    {activeCrop.is_primary && (
-                      <span style={{ fontSize: "12px", fontWeight: "700", background: "#fee2e2", color: "#991b1b", padding: "3px 10px", borderRadius: "4px" }}>
-                        Primary Diagnostic Contributor ({result?.dominant_contribution_pct}%)
+                {/* COMPANION CLINICAL PATHOLOGY DETAILS */}
+                <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px", flexWrap: "wrap" }}>
+                      <span style={{ fontSize: "11px", fontWeight: "700", background: "#fef3c7", color: "#92400e", padding: "3px 10px", borderRadius: "4px", border: "1px solid #fde68a" }}>
+                        2.7x Optical Magnification
                       </span>
-                    )}
-                  </div>
-                  <h4 style={{ fontSize: "19px", color: "#0f172a", margin: "0 0 10px 0" }}>
-                    {activeCrop.title}
-                  </h4>
-                  <p style={{ fontSize: "14px", color: "#334155", lineHeight: "1.6", margin: "0 0 14px 0" }}>
-                    {activeCrop.description}
-                  </p>
-                  <div style={{ background: "#ffffff", padding: "10px 14px", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: "12.5px", color: "#64748b" }}>
-                    <strong>Focal Anatomy:</strong> Centered at pixel coordinates ({activeCrop.center?.[0]}, {activeCrop.center?.[1]}). Targeting reticle isolates pathology margins from background parenchyma.
+                      {activeCrop.is_primary ? (
+                        <span style={{ fontSize: "11px", fontWeight: "700", background: "#fee2e2", color: "#991b1b", padding: "3px 10px", borderRadius: "4px", border: "1px solid #fecaca" }}>
+                          ★ Primary Contributor ({result?.dominant_contribution_pct}%)
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: "11px", fontWeight: "600", background: "#f1f5f9", color: "#475569", padding: "3px 10px", borderRadius: "4px" }}>
+                          Secondary Lesion Biomarker
+                        </span>
+                      )}
+                    </div>
+
+                    <h4 style={{ fontSize: "20px", color: "#0f172a", margin: "0 0 10px 0" }}>
+                      {activeCrop.title}
+                    </h4>
+
+                    <p style={{ fontSize: "14px", color: "#334155", lineHeight: "1.65", margin: "0 0 16px 0" }}>
+                      {activeCrop.description}
+                    </p>
+
+                    <div style={{ background: "#f8fafc", padding: "14px", borderRadius: "8px", border: "1px solid #e2e8f0", marginBottom: "16px" }}>
+                      <span style={{ fontSize: "11.5px", fontWeight: "700", color: "#0369a1", textTransform: "uppercase" }}>
+                        Target Coordinates & Anatomy
+                      </span>
+                      <p style={{ fontSize: "13px", color: "#475569", lineHeight: "1.6", margin: "6px 0 0 0" }}>
+                        Centered at pixel coordinates ({activeCrop.center?.[0]}px, {activeCrop.center?.[1]}px). The targeting reticle isolates pathology margins from background parenchyma for direct qualitative inspection.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
