@@ -43,8 +43,10 @@ QUALITY_GATE = RetinalQualityGate()
 
 UPLOAD_DIR = Path("outputs/api_uploads")
 GRADCAM_DIR = Path("outputs/gradcam")
+ANNOTATED_DIR = Path("outputs/annotated")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 GRADCAM_DIR.mkdir(parents=True, exist_ok=True)
+ANNOTATED_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def get_predictor() -> FundusPredictor:
@@ -75,11 +77,19 @@ class PredictionResponse(BaseModel):
     probabilities: List[float] = Field(..., description="Probability distribution across all 5 classes")
     heatmap_url: Optional[str] = Field(None, description="URL endpoint to fetch Grad-CAM heatmap overlay")
     heatmap_base64: Optional[str] = Field(None, description="Base64 encoded Grad-CAM overlay image")
+    annotated_url: Optional[str] = Field(None, description="URL endpoint to fetch annotated retinal lesions image")
+    annotated_base64: Optional[str] = Field(None, description="Base64 encoded annotated retinal image")
     risk_level: str = Field(..., description="Clinical triage risk level (None, Low, Moderate, High, Critical)")
     clinical_severity: str = Field(..., description="Full clinical severity classification")
     recommended_action: str = Field(..., description="Ophthalmologist referral or follow-up recommendation")
     quality_gate: Optional[Dict[str, Any]] = Field(None, description="Quality gate score and evaluation details")
     biomarkers: Optional[Dict[str, Any]] = Field(None, description="Extracted microaneurysm and exudate densities")
+    lesion_counts: Optional[Dict[str, int]] = Field(None, description="Counts of microaneurysms, hemorrhages, exudates, cotton wool spots")
+    lesions: Optional[List[Dict[str, Any]]] = Field(None, description="Detected lesion entities with coordinates and confidence")
+    primary_findings: Optional[List[str]] = Field(None, description="Key clinical lesion findings bullet points")
+    clinical_explanation: Optional[str] = Field(None, description="Full ophthalmologist-grade structured narrative explanation")
+    clinical_summary: Optional[str] = Field(None, description="Concise pathological summary")
+    differential: Optional[str] = Field(None, description="ETDRS differential reasoning")
 
 
 @app.get("/", tags=["General"])
@@ -178,6 +188,14 @@ async def predict_retina(
                 with open(heatmap_path, "rb") as img_f:
                     heatmap_base64 = base64.b64encode(img_f.read()).decode("utf-8")
 
+        annotated_path = result.get("annotated_path")
+        annotated_url = None
+        annotated_base64 = result.get("annotated_base64")
+
+        if annotated_path and os.path.exists(annotated_path):
+            ann_filename = Path(annotated_path).name
+            annotated_url = f"/annotated/{ann_filename}"
+
         return PredictionResponse(
             prediction=result["prediction"],
             class_index=result["class_index"],
@@ -185,11 +203,19 @@ async def predict_retina(
             probabilities=result["probabilities"],
             heatmap_url=heatmap_url,
             heatmap_base64=heatmap_base64,
+            annotated_url=annotated_url,
+            annotated_base64=annotated_base64,
             risk_level=result["risk_level"],
             clinical_severity=result["clinical_severity"],
             recommended_action=result["recommended_action"],
             quality_gate=result.get("quality_gate"),
             biomarkers=result.get("biomarkers"),
+            lesion_counts=result.get("lesion_counts"),
+            lesions=result.get("lesions"),
+            primary_findings=result.get("primary_findings"),
+            clinical_explanation=result.get("clinical_explanation"),
+            clinical_summary=result.get("clinical_summary"),
+            differential=result.get("differential"),
         )
 
     finally:
@@ -207,6 +233,23 @@ def get_heatmap(filename: str):
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="Heatmap image not found.")
     return FileResponse(str(file_path), media_type="image/jpeg")
+
+
+@app.get("/annotated/{filename}", tags=["Explainability"])
+def get_annotated(filename: str):
+    """Retrieve the generated clinical lesion annotated fundus image."""
+    file_path = ANNOTATED_DIR / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Annotated image not found.")
+    return FileResponse(str(file_path), media_type="image/png")
+
+
+@app.post("/explain", response_model=PredictionResponse, tags=["Explainability"])
+async def explain_fundus(
+    file: UploadFile = File(..., description="Retinal fundus photograph for clinical lesion explainability"),
+):
+    """Run full explainability analysis with lesion localization and ophthalmology annotation."""
+    return await predict_retina(file=file, include_base64=True)
 
 
 if __name__ == "__main__":

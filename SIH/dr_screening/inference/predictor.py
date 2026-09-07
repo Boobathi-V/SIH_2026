@@ -17,6 +17,7 @@ from dr_screening.configs.constants import (
     NUM_CLASSES,
 )
 from dr_screening.explainability.gradcam import RetinalGradCAM
+from dr_screening.explainability.explainable_pipeline import ExplainableLesionPipeline
 from dr_screening.preprocessing.quality_gate import RetinalQualityGate
 
 
@@ -59,6 +60,7 @@ class FundusPredictor:
 
         self.model.eval()
         self.gradcam_engine = RetinalGradCAM(model=self.model, target_layer=target_layer)
+        self.lesion_pipeline = ExplainableLesionPipeline()
 
     def _find_checkpoint(self, preferred_path: Optional[str]) -> str:
         candidates = [
@@ -224,6 +226,7 @@ class FundusPredictor:
 
         # 7. Grad-CAM Explainability Heatmap
         heatmap_path = None
+        raw_cam_map = None
         if generate_heatmap:
             if image_name is None:
                 image_name = Path(image_source).stem if isinstance(image_source, (str, Path)) else "fundus"
@@ -239,6 +242,18 @@ class FundusPredictor:
                     filename_prefix=f"{image_name}_pred_class_{class_idx}",
                 )
                 heatmap_path = explain_result["overlay_path"]
+                raw_cam_map = explain_result.get("raw_cam")
+
+        # 8. Clinical Lesion Detection & Annotated Ophthalmology Rendering
+        annotated_dir = Path(save_dir).parent / "annotated"
+        lesion_res = self.lesion_pipeline.process(
+            img_bgr=img_bgr,
+            prediction_class=class_idx,
+            confidence=confidence,
+            gradcam_map=raw_cam_map,
+            save_dir=str(annotated_dir),
+            image_name=image_name or "fundus",
+        )
 
         return {
             "prediction": prediction_label,
@@ -246,6 +261,8 @@ class FundusPredictor:
             "confidence": round(confidence, 4),
             "probabilities": [round(float(val), 4) for val in p],
             "heatmap_path": heatmap_path,
+            "annotated_path": lesion_res.get("annotated_image_path"),
+            "annotated_base64": lesion_res.get("annotated_base64"),
             "risk_level": risk_info["risk_level"],
             "clinical_severity": risk_info["severity"],
             "recommended_action": risk_info["action"],
@@ -254,4 +271,10 @@ class FundusPredictor:
                 "microaneurysm_density": round(ma_density, 2),
                 "exudate_density": round(ex_density, 2),
             },
+            "lesion_counts": lesion_res.get("counts", {}),
+            "lesions": lesion_res.get("lesions", []),
+            "primary_findings": lesion_res.get("primary_findings", []),
+            "clinical_explanation": lesion_res.get("explanation_text", ""),
+            "clinical_summary": lesion_res.get("clinical_summary", ""),
+            "differential": lesion_res.get("differential", ""),
         }

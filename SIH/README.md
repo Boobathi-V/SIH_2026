@@ -263,6 +263,53 @@ Input Tensor -> ResNet-50 Forward Pass
 - Severe DR: Multi-quadrant hemorrhage zones + cotton wool spots
 - PDR: Neovascularization zones + vitreous hemorrhage fields
 
+---
+
+## 11B. Explainable AI: Retinal Lesion Detection & Ophthalmology Annotation
+
+**Why this feature wins SIH26038:**
+The 5-class classification of diabetic retinopathy is a solved benchmark. True clinical value in tele-ophthalmology comes from answering:
+> *"Why did the AI diagnose Moderate NPDR with 94% confidence? Which specific retinal lesions caused this triage decision?"*
+
+The system features a **6-stage Explainability & Lesion Localization Engine** (`dr_screening/explainability/`):
+
+### 1. Architectural Components:
+- **`optic_disc.py`**: Localizes the optic disc using red/luminance morphological closing and circular fitting. Masks out the disc with a 15% safety boundary so anatomical brightness is **never falsely identified as a hard exudate or lesion**.
+- **`vessel_segmentation.py`**: Extracts the retinal vessel tree from green channel CLAHE and multi-scale morphological top-hat filters. Characterizes caliber and hemoglobin absorption to label **Arterioles** (thinner, higher A/V reflex) vs **Venules** (wider, darker).
+- **`lesion_detector.py`**: Multi-lesion detector combining classical computer vision and Grad-CAM activation weighting:
+  - **Microaneurysms (MAs)**: Tiny, circular red dots (morphological black-hat, circularity $\ge 0.55$, dark-red spectrum verification).
+  - **Intraretinal Hemorrhages (HMs)**: Irregular dark-red blot/flame patches with area $> 60\text{ px}$.
+  - **Hard Exudates (EXs)**: Circinate bright-yellow lipid deposits (CIELAB $L^* \ge 140, b^* \ge 135$, HSV yellow hue $12^\circ-48^\circ$, high margin Sobel gradient).
+  - **Cotton Wool Spots (CWSs)**: Soft fluffy nerve fiber layer micro-infarcts (high lightness, lower yellowness, soft feathered boundaries).
+  - **Neovascularization (NV)**: Abnormal, tortuous new vessel fronds (NVD/NVE) indicating proliferative hypoxia.
+- **`annotation_renderer.py`**: Generates high-resolution publication-quality fundus annotations (`outputs/annotated/{name}_annotated.png`) with clean white circular callouts, leader lines, and anti-aliased TrueType labels matching clinical ophthalmology consults.
+- **`explanation_generator.py`**: Produces automated ETDRS / AAO structured ophthalmology reports detailing primary findings, severity mechanisms, differential reasoning, and clinical action protocols.
+
+### 2. Output Schema:
+```json
+{
+  "prediction": "Moderate DR",
+  "confidence": 94.2,
+  "risk_level": "Moderate",
+  "lesion_counts": {
+    "Microaneurysm": 7,
+    "Hemorrhage": 3,
+    "Hard Exudate": 19,
+    "Cotton Wool Spot": 0,
+    "Neovascularization": 0
+  },
+  "primary_findings": [
+    "7 Microaneurysm(s) detected in the retinal capillary beds.",
+    "19 Hard Exudate lipid cluster(s) with sharp margins.",
+    "Optic Disc successfully localized at (154, 256) and isolated from lesion scoring."
+  ],
+  "clinical_explanation": "Prediction: Moderate NPDR (94.2% confidence)...\nRisk Interpretation: Circinate lipid deposits and microaneurysms indicate vascular hyperpermeability...",
+  "annotated_url": "/annotated/sample_mod_annotated.png",
+  "heatmap_url": "/heatmap/sample_mod_heatmap.jpg"
+}
+```
+
+
 **Accessing heatmaps:**
 ```
 GET http://127.0.0.1:8000/heatmap/{filename}

@@ -100,3 +100,17 @@ export function resolveHeatmapUrl(heatmapUrl) {
   }
   return `${API_BASE_URL}${heatmapUrl.startsWith("/") ? "" : "/"}${heatmapUrl}`;
 }
+
+/**
+ * Resolve full URL for clinical lesion annotated image.
+ * @param {string} annotatedUrl - Relative URL from prediction response.
+ * @returns {string} Full URL to fetch image.
+ */
+export function resolveAnnotatedUrl(annotatedUrl) {
+  if (!annotatedUrl) return "";
+  if (annotatedUrl.startsWith("http://") || annotatedUrl.startsWith("https://")) {
+    return annotatedUrl;
+  }
+  return `${API_BASE_URL}${annotatedUrl.startsWith("/") ? "" : "/"}${annotatedUrl}`;
+}
+

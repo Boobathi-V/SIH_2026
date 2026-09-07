@@ -203,6 +203,72 @@ function Result() {
 
         </div>
 
+        {/* Clinical Lesion Detection & Biomarkers Card */}
+        <div className="card" style={{ marginBottom: "24px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
+            <div>
+              <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--primary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Feature 2: Clinical Lesion Localization
+              </span>
+              <h3 style={{ fontSize: "18px", marginTop: "2px", color: "var(--text-main)" }}>
+                Detected Retinal Lesions & Vascular Anatomy
+              </h3>
+            </div>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ fontSize: "12px", padding: "6px 14px" }}
+              onClick={() => navigate("/explain")}
+            >
+              🔍 View Full Lesion Annotations & XAI →
+            </button>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px", marginBottom: "16px" }}>
+            <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "8px", border: "1px solid #e2e8f0", textAlign: "center" }}>
+              <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>Microaneurysms</span>
+              <p style={{ fontSize: "20px", fontWeight: "800", color: "#b91c1c", margin: "4px 0 0 0" }}>
+                {result.lesion_counts?.Microaneurysm || 0}
+              </p>
+            </div>
+            <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "8px", border: "1px solid #e2e8f0", textAlign: "center" }}>
+              <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>Blot Hemorrhages</span>
+              <p style={{ fontSize: "20px", fontWeight: "800", color: "#991b1b", margin: "4px 0 0 0" }}>
+                {result.lesion_counts?.Hemorrhage || 0}
+              </p>
+            </div>
+            <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "8px", border: "1px solid #e2e8f0", textAlign: "center" }}>
+              <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>Hard Exudates</span>
+              <p style={{ fontSize: "20px", fontWeight: "800", color: "#d97706", margin: "4px 0 0 0" }}>
+                {result.lesion_counts?.["Hard Exudate"] || 0}
+              </p>
+            </div>
+            <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "8px", border: "1px solid #e2e8f0", textAlign: "center" }}>
+              <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>Cotton Wool Spots</span>
+              <p style={{ fontSize: "20px", fontWeight: "800", color: "#475569", margin: "4px 0 0 0" }}>
+                {result.lesion_counts?.["Cotton Wool Spot"] || 0}
+              </p>
+            </div>
+            <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "8px", border: "1px solid #e2e8f0", textAlign: "center" }}>
+              <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>Optic Disc</span>
+              <p style={{ fontSize: "16px", fontWeight: "700", color: "#166534", margin: "6px 0 0 0" }}>
+                Isolated & Masked
+              </p>
+            </div>
+          </div>
+
+          {result.primary_findings && result.primary_findings.length > 0 && (
+            <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "12px 16px", borderRadius: "8px" }}>
+              <strong style={{ fontSize: "13px", color: "#166534" }}>Key Lesion Attribution:</strong>
+              <ul style={{ margin: "6px 0 0 0", paddingLeft: "18px", fontSize: "13px", color: "#15803d" }}>
+                {result.primary_findings.map((f, i) => (
+                  <li key={i}>{f}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
         {/* Clinical Recommendation Card */}
         <div className="card" style={{ borderLeft: "5px solid var(--primary)", background: "#f0f9ff" }}>
           <h3 style={{ fontSize: "17px", color: "var(--primary-dark)", marginBottom: "8px" }}>

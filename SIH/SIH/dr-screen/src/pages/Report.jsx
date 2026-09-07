@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { resolveHeatmapUrl } from "../api";
+import { resolveHeatmapUrl, resolveAnnotatedUrl } from "../api";
 
 function Report() {
   const navigate = useNavigate();
@@ -13,6 +13,12 @@ function Report() {
     ? `data:image/jpeg;base64,${result.heatmap_base64}`
     : result?.heatmap_url
     ? resolveHeatmapUrl(result.heatmap_url)
+    : null;
+
+  const annotatedSrc = result?.annotated_base64
+    ? `data:image/png;base64,${result.annotated_base64}`
+    : result?.annotated_url
+    ? resolveAnnotatedUrl(result.annotated_url)
     : null;
 
   const today = new Date().toLocaleDateString("en-US", {
@@ -135,41 +141,93 @@ function Report() {
                   Neural Architecture
                 </td>
                 <td style={{ padding: "10px 12px", border: "1px solid #e2e8f0", color: "#475569" }}>
-                  EfficientNetV2-S (384x384 resolution, Focal Loss multi-class transfer learning)
+                  ResNet-50 with Clinical Quality Gate & Ben Graham Retinal Preprocessing
                 </td>
               </tr>
             </tbody>
           </table>
 
-          {/* Visual Evidence (Fundus + Grad-CAM Heatmap) */}
-          <h2 style={{ fontSize: "17px", color: "#0f172a", marginBottom: "12px" }}>3. Photographic & XAI Visual Evidence</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "28px" }}>
-            <div style={{ border: "1px solid #cbd5e1", borderRadius: "6px", padding: "12px", textAlign: "center" }}>
-              <p style={{ fontSize: "12px", fontWeight: "600", color: "#475569", marginBottom: "8px" }}>
-                Patient Retinal Fundus Photograph
+          {/* Visual Evidence (Fundus + Annotated Retina + Grad-CAM Heatmap) */}
+          <h2 style={{ fontSize: "17px", color: "#0f172a", marginBottom: "12px" }}>3. Photographic & Explainable AI Evidence</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px", marginBottom: "28px" }}>
+            <div style={{ border: "1px solid #cbd5e1", borderRadius: "6px", padding: "10px", textAlign: "center" }}>
+              <p style={{ fontSize: "11px", fontWeight: "700", color: "#475569", marginBottom: "6px" }}>
+                Patient Fundus Photo
               </p>
-              <div style={{ height: "240px", background: "#0f172a", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ height: "190px", background: "#0f172a", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 {originalImage ? (
                   <img src={originalImage} alt="Original fundus" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
                 ) : (
-                  <span style={{ color: "#94a3b8", fontSize: "12px" }}>No image available</span>
+                  <span style={{ color: "#94a3b8", fontSize: "12px" }}>No image</span>
                 )}
               </div>
             </div>
 
-            <div style={{ border: "1px solid #cbd5e1", borderRadius: "6px", padding: "12px", textAlign: "center" }}>
-              <p style={{ fontSize: "12px", fontWeight: "600", color: "#475569", marginBottom: "8px" }}>
-                Grad-CAM Pathological Saliency Map
+            <div style={{ border: "1px solid #cbd5e1", borderRadius: "6px", padding: "10px", textAlign: "center" }}>
+              <p style={{ fontSize: "11px", fontWeight: "700", color: "#475569", marginBottom: "6px" }}>
+                Annotated Retinal Lesions
               </p>
-              <div style={{ height: "240px", background: "#0f172a", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ height: "190px", background: "#0f172a", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {annotatedSrc ? (
+                  <img src={annotatedSrc} alt="Annotated lesions" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                ) : (
+                  <span style={{ color: "#94a3b8", fontSize: "12px" }}>No annotation</span>
+                )}
+              </div>
+            </div>
+
+            <div style={{ border: "1px solid #cbd5e1", borderRadius: "6px", padding: "10px", textAlign: "center" }}>
+              <p style={{ fontSize: "11px", fontWeight: "700", color: "#475569", marginBottom: "6px" }}>
+                Grad-CAM Attention Map
+              </p>
+              <div style={{ height: "190px", background: "#0f172a", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 {heatmapSrc ? (
                   <img src={heatmapSrc} alt="Grad-CAM overlay" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
                 ) : (
-                  <span style={{ color: "#94a3b8", fontSize: "12px" }}>No heatmap available</span>
+                  <span style={{ color: "#94a3b8", fontSize: "12px" }}>No heatmap</span>
                 )}
               </div>
             </div>
           </div>
+
+          {/* Quantified Lesion Findings Table */}
+          <h2 style={{ fontSize: "17px", color: "#0f172a", marginBottom: "12px" }}>4. Detected Retinal Lesion Profile</h2>
+          <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "28px", fontSize: "13px" }}>
+            <thead>
+              <tr style={{ background: "#f8fafc", textAlign: "left" }}>
+                <th style={{ padding: "8px 12px", border: "1px solid #e2e8f0" }}>Lesion Type</th>
+                <th style={{ padding: "8px 12px", border: "1px solid #e2e8f0" }}>Count / Status</th>
+                <th style={{ padding: "8px 12px", border: "1px solid #e2e8f0" }}>Clinical Implication</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={{ padding: "8px 12px", border: "1px solid #e2e8f0", fontWeight: "600" }}>Microaneurysms</td>
+                <td style={{ padding: "8px 12px", border: "1px solid #e2e8f0", fontWeight: "700", color: "#b91c1c" }}>{result?.lesion_counts?.Microaneurysm || 0}</td>
+                <td style={{ padding: "8px 12px", border: "1px solid #e2e8f0", color: "#475569" }}>Focal capillary outpouchings; primary hallmark of non-proliferative retinopathy.</td>
+              </tr>
+              <tr>
+                <td style={{ padding: "8px 12px", border: "1px solid #e2e8f0", fontWeight: "600" }}>Intraretinal Hemorrhages</td>
+                <td style={{ padding: "8px 12px", border: "1px solid #e2e8f0", fontWeight: "700", color: "#991b1b" }}>{result?.lesion_counts?.Hemorrhage || 0}</td>
+                <td style={{ padding: "8px 12px", border: "1px solid #e2e8f0", color: "#475569" }}>Deep dot/blot hemorrhages indicating venous and capillary wall breakdown.</td>
+              </tr>
+              <tr>
+                <td style={{ padding: "8px 12px", border: "1px solid #e2e8f0", fontWeight: "600" }}>Hard Exudates</td>
+                <td style={{ padding: "8px 12px", border: "1px solid #e2e8f0", fontWeight: "700", color: "#d97706" }}>{result?.lesion_counts?.["Hard Exudate"] || 0}</td>
+                <td style={{ padding: "8px 12px", border: "1px solid #e2e8f0", color: "#475569" }}>Lipid deposits from vascular leakage; risk marker for macular edema.</td>
+              </tr>
+              <tr>
+                <td style={{ padding: "8px 12px", border: "1px solid #e2e8f0", fontWeight: "600" }}>Cotton Wool Spots</td>
+                <td style={{ padding: "8px 12px", border: "1px solid #e2e8f0", fontWeight: "700", color: "#475569" }}>{result?.lesion_counts?.["Cotton Wool Spot"] || 0}</td>
+                <td style={{ padding: "8px 12px", border: "1px solid #e2e8f0", color: "#475569" }}>Soft exudates indicating localized precapillary nerve fiber layer infarctions.</td>
+              </tr>
+              <tr>
+                <td style={{ padding: "8px 12px", border: "1px solid #e2e8f0", fontWeight: "600" }}>Optic Disc Status</td>
+                <td style={{ padding: "8px 12px", border: "1px solid #e2e8f0", fontWeight: "700", color: "#166534" }}>Isolated</td>
+                <td style={{ padding: "8px 12px", border: "1px solid #e2e8f0", color: "#475569" }}>Anatomically localized & masked to prevent false exudate scoring.</td>
+              </tr>
+            </tbody>
+          </table>
 
           {/* Clinical Action Recommendation */}
           <div style={{ background: "#f0f9ff", border: "1.5px solid #bae6fd", padding: "20px", borderRadius: "8px", marginBottom: "28px" }}>
