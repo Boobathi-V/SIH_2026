@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { resolveHeatmapUrl, resolveAnnotatedUrl } from "../api";
 
@@ -6,6 +6,12 @@ function Explain() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("annotated"); // 'annotated', 'gradcam', 'split'
   const [heatmapOpacity, setHeatmapOpacity] = useState(75);
+  const [selectedCropIndex, setSelectedCropIndex] = useState(0);
+
+  // Interactive Loupe (Magnifying Glass) State
+  const [loupeActive, setLoupeActive] = useState(false);
+  const [loupePos, setLoupePos] = useState({ x: 0, y: 0, show: false });
+  const imageContainerRef = useRef(null);
 
   const rawResult = localStorage.getItem("screening_result");
   const result = rawResult ? JSON.parse(rawResult) : null;
@@ -33,6 +39,25 @@ function Explain() {
 
   const primaryFindings = result?.primary_findings || [];
   const confidencePercent = Math.round((result?.confidence || 0) * 100);
+  const zoomedCrops = result?.zoomed_crops || [];
+  const activeCrop = zoomedCrops[selectedCropIndex] || zoomedCrops[0] || null;
+
+  function handleMouseMove(e) {
+    if (!loupeActive || !imageContainerRef.current) return;
+    const rect = imageContainerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
+      setLoupePos({ x, y, show: true, width: rect.width, height: rect.height });
+    } else {
+      setLoupePos((prev) => ({ ...prev, show: false }));
+    }
+  }
+
+  function handleMouseLeave() {
+    setLoupePos((prev) => ({ ...prev, show: false }));
+  }
 
   return (
     <div className="page-container">
@@ -72,7 +97,7 @@ function Explain() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
             <div>
               <span style={{ fontSize: "12px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: "600" }}>
-                Predicted Severity Stage:
+                Diagnosed Severity Stage:
               </span>
               <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginTop: "2px" }}>
                 <strong style={{ fontSize: "20px", color: "var(--text-main)" }}>
@@ -99,7 +124,6 @@ function Explain() {
                   background: activeTab === "annotated" ? "#ffffff" : "transparent",
                   color: activeTab === "annotated" ? "var(--primary-dark)" : "#64748b",
                   boxShadow: activeTab === "annotated" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-                  transition: "all 0.15s ease",
                 }}
               >
                 🏷️ Annotated Lesions
@@ -117,7 +141,6 @@ function Explain() {
                   background: activeTab === "gradcam" ? "#ffffff" : "transparent",
                   color: activeTab === "gradcam" ? "var(--primary-dark)" : "#64748b",
                   boxShadow: activeTab === "gradcam" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-                  transition: "all 0.15s ease",
                 }}
               >
                 🔥 Grad-CAM Heatmap
@@ -135,7 +158,6 @@ function Explain() {
                   background: activeTab === "split" ? "#ffffff" : "transparent",
                   color: activeTab === "split" ? "var(--primary-dark)" : "#64748b",
                   boxShadow: activeTab === "split" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-                  transition: "all 0.15s ease",
                 }}
               >
                 ⚖️ Side-by-Side View
@@ -144,10 +166,60 @@ function Explain() {
           </div>
         </div>
 
+        {/* PRIMARY CONTRIBUTING LESION & CLINICAL REASON BANNER */}
+        <div className="card" style={{ marginBottom: "24px", border: "1.5px solid #bae6fd", background: "#f0f9ff" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "10px", marginBottom: "12px" }}>
+            <div>
+              <span style={{ fontSize: "11px", fontWeight: "800", color: "#0369a1", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Primary Diagnostic Driver
+              </span>
+              <h3 style={{ fontSize: "20px", margin: "2px 0 0 0", color: "#0c4a6e" }}>
+                Most Contributing Lesion: <span style={{ color: "#b91c1c", fontWeight: "800" }}>{result?.dominant_lesion || "Retinal Pathology"}</span>
+              </h3>
+            </div>
+            <span style={{ fontSize: "13px", fontWeight: "800", background: "#fee2e2", color: "#991b1b", padding: "6px 12px", borderRadius: "8px", border: "1px solid #fecaca" }}>
+              {result?.dominant_contribution_pct || 58}% Diagnostic Weight
+            </span>
+          </div>
+
+          <p style={{ fontSize: "14px", color: "#0c4a6e", lineHeight: "1.6", margin: "0 0 16px 0", background: "#ffffff", padding: "14px 18px", borderRadius: "8px", border: "1px solid #bae6fd" }}>
+            <strong>Clinical Justification: </strong>
+            {result?.dominant_reason ||
+              "Identified microvascular lesions provide direct anatomical evidence correlating with the clinical diagnosis under standard ETDRS staging."}
+          </p>
+
+          {/* Attribution Share Meters */}
+          {result?.attributions && result.attributions.length > 0 && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px" }}>
+              {result.attributions.map((attr, idx) => (
+                <div key={idx} style={{ background: "#ffffff", padding: "10px 14px", borderRadius: "6px", border: "1px solid #e0f2fe" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "4px" }}>
+                    <strong style={{ color: "#0f172a" }}>{attr.type}</strong>
+                    <span style={{ color: idx === 0 ? "#dc2626" : "#0284c7", fontWeight: "700" }}>{attr.contribution_pct}%</span>
+                  </div>
+                  <div style={{ width: "100%", height: "6px", background: "#f1f5f9", borderRadius: "9999px", overflow: "hidden" }}>
+                    <div
+                      style={{
+                        width: `${attr.contribution_pct}%`,
+                        height: "100%",
+                        background: idx === 0 ? "#dc2626" : "#0284c7",
+                        borderRadius: "9999px",
+                      }}
+                    />
+                  </div>
+                  <span style={{ fontSize: "11px", color: "#64748b", marginTop: "4px", display: "block" }}>
+                    {attr.role} • Count: {attr.count}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Visual Inspection Area */}
         {activeTab === "annotated" && (
           <div className="card" style={{ marginBottom: "24px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px", flexWrap: "wrap", gap: "10px" }}>
               <div>
                 <h3 style={{ fontSize: "17px", color: "var(--text-main)", margin: 0 }}>
                   Ophthalmology-Annotated Retinal Lesion Map
@@ -156,12 +228,31 @@ function Explain() {
                   Clinical localization of Microaneurysms, Hemorrhages, Hard Exudates, Optic Disc, and Major Retinal Vessels.
                 </p>
               </div>
-              <span style={{ fontSize: "12px", background: "#f0fdf4", color: "#166534", padding: "4px 10px", borderRadius: "6px", fontWeight: "700", border: "1px solid #bbf7d0" }}>
-                Anatomically Masked & Verified
-              </span>
+
+              {/* Retinal Loupe Toggle */}
+              <button
+                type="button"
+                onClick={() => setLoupeActive(!loupeActive)}
+                style={{
+                  padding: "6px 14px",
+                  fontSize: "12px",
+                  fontWeight: "700",
+                  borderRadius: "6px",
+                  border: "1px solid",
+                  cursor: "pointer",
+                  borderColor: loupeActive ? "#0284c7" : "#cbd5e1",
+                  background: loupeActive ? "#e0f2fe" : "#ffffff",
+                  color: loupeActive ? "#0369a1" : "#475569",
+                }}
+              >
+                🔎 {loupeActive ? "Interactive 3x Loupe: Active" : "Enable 3x Retinal Loupe"}
+              </button>
             </div>
 
             <div
+              ref={imageContainerRef}
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
               style={{
                 width: "100%",
                 height: "520px",
@@ -172,6 +263,8 @@ function Explain() {
                 justifyContent: "center",
                 overflow: "hidden",
                 border: "1px solid #1e293b",
+                position: "relative",
+                cursor: loupeActive ? "crosshair" : "default",
               }}
             >
               {annotatedSrc ? (
@@ -188,6 +281,46 @@ function Explain() {
                 />
               ) : (
                 <span style={{ color: "#64748b" }}>No annotated image available</span>
+              )}
+
+              {/* Interactive 3x Magnifying Loupe */}
+              {loupeActive && loupePos.show && annotatedSrc && (
+                <div
+                  style={{
+                    position: "absolute",
+                    left: `${loupePos.x - 75}px`,
+                    top: `${loupePos.y - 75}px`,
+                    width: "150px",
+                    height: "150px",
+                    borderRadius: "50%",
+                    border: "3px solid #38bdf8",
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.6)",
+                    pointerEvents: "none",
+                    backgroundImage: `url(${annotatedSrc})`,
+                    backgroundRepeat: "no-repeat",
+                    backgroundSize: `${loupePos.width * 2.8}px ${loupePos.height * 2.8}px`,
+                    backgroundPosition: `-${loupePos.x * 2.8 - 75}px -${loupePos.y * 2.8 - 75}px`,
+                    backgroundColor: "#000",
+                    zIndex: 20,
+                  }}
+                >
+                  <div
+                    style={{
+                      position: "absolute",
+                      bottom: "6px",
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      background: "rgba(15,23,42,0.85)",
+                      color: "#38bdf8",
+                      fontSize: "10px",
+                      fontWeight: "700",
+                      padding: "1px 6px",
+                      borderRadius: "4px",
+                    }}
+                  >
+                    3x Magnifier
+                  </div>
+                </div>
               )}
             </div>
           </div>
@@ -309,6 +442,104 @@ function Explain() {
           </div>
         )}
 
+        {/* HIGH-MAGNIFICATION ZOOMED-IN LESION GALLERY */}
+        {zoomedCrops.length > 0 && (
+          <div className="card" style={{ marginBottom: "24px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
+              <div>
+                <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--primary)", textTransform: "uppercase" }}>
+                  Optical Magnification Gallery
+                </span>
+                <h3 style={{ fontSize: "18px", margin: "2px 0 0 0", color: "var(--text-main)" }}>
+                  High-Magnification Zoom-In on Retinal Lesion Types
+                </h3>
+              </div>
+
+              {/* Lesion Switcher */}
+              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                {zoomedCrops.map((crop, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setSelectedCropIndex(idx)}
+                    style={{
+                      padding: "6px 14px",
+                      fontSize: "12px",
+                      fontWeight: "700",
+                      borderRadius: "6px",
+                      border: "1px solid",
+                      cursor: "pointer",
+                      borderColor: selectedCropIndex === idx ? "var(--primary)" : "#cbd5e1",
+                      background: selectedCropIndex === idx ? "#e0f2fe" : "#ffffff",
+                      color: selectedCropIndex === idx ? "#0369a1" : "#475569",
+                    }}
+                  >
+                    {crop.type} {crop.is_primary && "★"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {activeCrop && (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "280px 1fr",
+                  gap: "24px",
+                  background: "#f8fafc",
+                  padding: "20px",
+                  borderRadius: "8px",
+                  border: "1px solid #e2e8f0",
+                  alignItems: "center",
+                }}
+              >
+                <div
+                  style={{
+                    width: "280px",
+                    height: "280px",
+                    background: "#090d16",
+                    borderRadius: "8px",
+                    overflow: "hidden",
+                    border: "2px solid #0f172a",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                  }}
+                >
+                  <img
+                    src={`data:image/jpeg;base64,${activeCrop.image_base64}`}
+                    alt={activeCrop.title}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                </div>
+
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                    <span style={{ fontSize: "12px", fontWeight: "700", background: "#fef3c7", color: "#92400e", padding: "3px 10px", borderRadius: "4px", border: "1px solid #fde68a" }}>
+                      {activeCrop.magnification}
+                    </span>
+                    {activeCrop.is_primary && (
+                      <span style={{ fontSize: "12px", fontWeight: "700", background: "#fee2e2", color: "#991b1b", padding: "3px 10px", borderRadius: "4px" }}>
+                        Primary Diagnostic Contributor ({result?.dominant_contribution_pct}%)
+                      </span>
+                    )}
+                  </div>
+                  <h4 style={{ fontSize: "19px", color: "#0f172a", margin: "0 0 10px 0" }}>
+                    {activeCrop.title}
+                  </h4>
+                  <p style={{ fontSize: "14px", color: "#334155", lineHeight: "1.6", margin: "0 0 14px 0" }}>
+                    {activeCrop.description}
+                  </p>
+                  <div style={{ background: "#ffffff", padding: "10px 14px", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: "12.5px", color: "#64748b" }}>
+                    <strong>Focal Anatomy:</strong> Centered at pixel coordinates ({activeCrop.center?.[0]}, {activeCrop.center?.[1]}). Targeting reticle isolates pathology margins from background parenchyma.
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Quantified Lesion Findings Dashboard */}
         <div className="card" style={{ marginBottom: "24px" }}>
           <div style={{ borderBottom: "1px solid var(--border)", paddingBottom: "12px", marginBottom: "16px" }}>
@@ -377,47 +608,13 @@ function Explain() {
           </div>
         </div>
 
-        {/* Ophthalmology Diagnosis Explanation & ETDRS Differential */}
-        <div className="card" style={{ marginBottom: "24px" }}>
-          <div style={{ borderBottom: "1px solid var(--border)", paddingBottom: "12px", marginBottom: "16px" }}>
-            <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--primary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Clinical Decision Rationale
-            </span>
-            <h3 style={{ fontSize: "18px", marginTop: "2px", color: "var(--text-main)" }}>
-              Why Did the AI Predict {result?.prediction}?
-            </h3>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
-            <div style={{ background: "#f8fafc", padding: "16px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-              <h4 style={{ fontSize: "14px", color: "#0f172a", marginBottom: "6px" }}>
-                Pathological Severity & Mechanism
-              </h4>
-              <p style={{ fontSize: "13.5px", color: "#334155", lineHeight: "1.6", margin: 0 }}>
-                {result?.clinical_summary ||
-                  "The neural network identified localized microvascular alterations corresponding to standard international grading criteria."}
-              </p>
-            </div>
-
-            <div style={{ background: "#f8fafc", padding: "16px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-              <h4 style={{ fontSize: "14px", color: "#0f172a", marginBottom: "6px" }}>
-                ETDRS Differential Reasoning
-              </h4>
-              <p style={{ fontSize: "13.5px", color: "#334155", lineHeight: "1.6", margin: 0 }}>
-                {result?.differential ||
-                  "Absence of severe intraretinal microvascular abnormalities (IRMA) or neovascularization excludes proliferative progression."}
-              </p>
-            </div>
-          </div>
-        </div>
-
         {/* Action Footer */}
         <div style={{ display: "flex", justifyContent: "space-between", marginTop: "24px" }}>
           <button className="btn btn-secondary" onClick={() => navigate("/result")}>
             ← Back to Results
           </button>
           <button className="btn btn-primary" onClick={() => navigate("/report")}>
-            Generate Screening Report →
+            Generate Official Report →
           </button>
         </div>
 

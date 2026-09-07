@@ -86,6 +86,11 @@ class PredictionResponse(BaseModel):
     biomarkers: Optional[Dict[str, Any]] = Field(None, description="Extracted microaneurysm and exudate densities")
     lesion_counts: Optional[Dict[str, int]] = Field(None, description="Counts of microaneurysms, hemorrhages, exudates, cotton wool spots")
     lesions: Optional[List[Dict[str, Any]]] = Field(None, description="Detected lesion entities with coordinates and confidence")
+    dominant_lesion: Optional[str] = Field(None, description="Primary pathological lesion driving the diagnosis")
+    dominant_contribution_pct: Optional[int] = Field(None, description="Percentage contribution of the primary lesion")
+    dominant_reason: Optional[str] = Field(None, description="Detailed diagnostic reason for prediction based on dominant lesion")
+    attributions: Optional[List[Dict[str, Any]]] = Field(None, description="Ranked lesion contribution percentages")
+    zoomed_crops: Optional[List[Dict[str, Any]]] = Field(None, description="High-magnification optical zoom ROI crops")
     primary_findings: Optional[List[str]] = Field(None, description="Key clinical lesion findings bullet points")
     clinical_explanation: Optional[str] = Field(None, description="Full ophthalmologist-grade structured narrative explanation")
     clinical_summary: Optional[str] = Field(None, description="Concise pathological summary")
@@ -212,6 +217,11 @@ async def predict_retina(
             biomarkers=result.get("biomarkers"),
             lesion_counts=result.get("lesion_counts"),
             lesions=result.get("lesions"),
+            dominant_lesion=result.get("dominant_lesion"),
+            dominant_contribution_pct=result.get("dominant_contribution_pct"),
+            dominant_reason=result.get("dominant_reason"),
+            attributions=result.get("attributions"),
+            zoomed_crops=result.get("zoomed_crops"),
             primary_findings=result.get("primary_findings"),
             clinical_explanation=result.get("clinical_explanation"),
             clinical_summary=result.get("clinical_summary"),

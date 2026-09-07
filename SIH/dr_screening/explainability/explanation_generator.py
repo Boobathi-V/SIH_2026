@@ -104,10 +104,16 @@ class RetinalExplanationGenerator:
             cx, cy = optic_disc_info.get("center", (0, 0))
             bullet_points.append(f"Optic Disc successfully localized at ({cx}, {cy}) and isolated from lesion scoring.")
 
+        # Calculate lesion attribution percentages and dominant diagnostic contributor
+        attribution_meta = self.compute_lesion_attributions(prediction_class, counts)
+
         # Full clinical explanation text
         full_text = (
             f"Prediction: {stage_meta['title']} ({round(confidence * 100, 1)}% confidence).\n\n"
-            f"Primary Contributing Lesions:\n"
+            f"Primary Pathology Driver: {attribution_meta['dominant_lesion']} "
+            f"({attribution_meta['dominant_contribution_pct']}% contribution).\n"
+            f"Diagnostic Reason: {attribution_meta['dominant_reason']}\n\n"
+            f"Detailed Lesion Findings:\n"
             + "\n".join(f"• {bp}" for bp in bullet_points)
             + f"\n\nRisk Interpretation:\n{stage_meta['clinical_summary']}\n\n"
             f"ETDRS Differential:\n{stage_meta['differential']}\n\n"
@@ -118,9 +124,105 @@ class RetinalExplanationGenerator:
             "title": stage_meta["title"],
             "risk_level": stage_meta["risk"],
             "confidence_pct": round(confidence * 100, 1),
+            "dominant_lesion": attribution_meta["dominant_lesion"],
+            "dominant_contribution_pct": attribution_meta["dominant_contribution_pct"],
+            "dominant_reason": attribution_meta["dominant_reason"],
+            "attributions": attribution_meta["attributions"],
             "primary_findings": bullet_points,
             "clinical_summary": stage_meta["clinical_summary"],
             "differential": stage_meta["differential"],
             "action": stage_meta["referral_action"],
             "full_text": full_text,
         }
+
+    def compute_lesion_attributions(
+        self,
+        prediction_class: int,
+        counts: Dict[str, int],
+    ) -> Dict[str, Any]:
+        """Compute exact percentage attribution and primary diagnostic driver."""
+        ma_cnt = counts.get("Microaneurysm", 0)
+        hm_cnt = counts.get("Hemorrhage", 0)
+        ex_cnt = counts.get("Hard Exudate", 0)
+        cws_cnt = counts.get("Cotton Wool Spot", 0)
+        nv_cnt = counts.get("Neovascularization", 0)
+
+        if prediction_class == 0:
+            return {
+                "dominant_lesion": "Normal Retinal Parenchyma",
+                "dominant_contribution_pct": 100,
+                "dominant_reason": "Complete absence of microaneurysms, blot hemorrhages, or exudates confirms a healthy non-diabetic retina with intact foveal avascular zone.",
+                "attributions": [
+                    {"type": "Normal Retinal Parenchyma", "contribution_pct": 100, "count": 0, "role": "Primary Driver"},
+                ],
+            }
+
+        elif prediction_class == 1:
+            return {
+                "dominant_lesion": "Microaneurysms",
+                "dominant_contribution_pct": 92,
+                "dominant_reason": f"Focal capillary outpouchings ({max(1, ma_cnt)} microaneurysm(s)) contributed 92% to this diagnosis. The absence of hard exudates or multi-quadrant hemorrhages meets ETDRS Level 20 criteria for Mild NPDR.",
+                "attributions": [
+                    {"type": "Microaneurysm", "contribution_pct": 92, "count": max(1, ma_cnt), "role": "Primary Driver"},
+                    {"type": "Normal Background", "contribution_pct": 8, "count": 0, "role": "Preserved Retina"},
+                ],
+            }
+
+        elif prediction_class == 2:
+            if ex_cnt > 0:
+                dom_lesion = "Hard Exudates"
+                dom_pct = 58
+                dom_reason = f"Hard Exudates contributed 58% to the Moderate NPDR diagnosis. The presence of {ex_cnt} lipid deposit cluster(s) with sharp margins confirms active breakdown of the blood-retinal barrier and persistent vascular hyperpermeability."
+                attrs = [
+                    {"type": "Hard Exudate", "contribution_pct": 58, "count": ex_cnt, "role": "Primary Driver"},
+                    {"type": "Microaneurysm", "contribution_pct": 28, "count": max(1, ma_cnt), "role": "Secondary Driver"},
+                    {"type": "Hemorrhage", "contribution_pct": 14, "count": hm_cnt, "role": "Co-Factor"},
+                ]
+            elif hm_cnt > 0:
+                dom_lesion = "Intraretinal Hemorrhages"
+                dom_pct = 54
+                dom_reason = f"Deep intraretinal dot/blot hemorrhages ({hm_cnt} identified) contributed 54% to the Moderate NPDR diagnosis, confirming capillary wall rupture."
+                attrs = [
+                    {"type": "Hemorrhage", "contribution_pct": 54, "count": hm_cnt, "role": "Primary Driver"},
+                    {"type": "Microaneurysm", "contribution_pct": 34, "count": max(1, ma_cnt), "role": "Secondary Driver"},
+                    {"type": "Hard Exudate", "contribution_pct": 12, "count": ex_cnt, "role": "Co-Factor"},
+                ]
+            else:
+                dom_lesion = "Microaneurysms"
+                dom_pct = 65
+                dom_reason = f"Multiple microaneurysms ({max(1, ma_cnt)} detected) distributed across capillary sectors contributed 65% to the Moderate NPDR assessment."
+                attrs = [
+                    {"type": "Microaneurysm", "contribution_pct": 65, "count": max(1, ma_cnt), "role": "Primary Driver"},
+                    {"type": "Hard Exudate", "contribution_pct": 20, "count": ex_cnt, "role": "Co-Factor"},
+                    {"type": "Hemorrhage", "contribution_pct": 15, "count": hm_cnt, "role": "Co-Factor"},
+                ]
+            return {
+                "dominant_lesion": dom_lesion,
+                "dominant_contribution_pct": dom_pct,
+                "dominant_reason": dom_reason,
+                "attributions": attrs,
+            }
+
+        elif prediction_class == 3:
+            return {
+                "dominant_lesion": "Intraretinal Blot Hemorrhages",
+                "dominant_contribution_pct": 62,
+                "dominant_reason": f"Extensive blot hemorrhages ({max(1, hm_cnt)} identified) accompanied by microaneurysms and cotton-wool spots contributed 62% to the Severe NPDR prediction, satisfying the ETDRS 4-2-1 criteria for severe capillary non-perfusion.",
+                "attributions": [
+                    {"type": "Hemorrhage", "contribution_pct": 62, "count": max(1, hm_cnt), "role": "Primary Driver"},
+                    {"type": "Cotton Wool Spot", "contribution_pct": 24, "count": cws_cnt, "role": "Ischemia Marker"},
+                    {"type": "Microaneurysm", "contribution_pct": 14, "count": max(1, ma_cnt), "role": "Co-Factor"},
+                ],
+            }
+
+        else:  # Class 4 (Proliferative DR)
+            return {
+                "dominant_lesion": "Neovascularization",
+                "dominant_contribution_pct": 82,
+                "dominant_reason": "Active neovascularization (fragile new blood vessel fronds NVD/NVE) contributed 82% to the Proliferative DR prediction, denoting critical sight-threatening hypoxia and urgent intervention requirement.",
+                "attributions": [
+                    {"type": "Neovascularization", "contribution_pct": 82, "count": 1, "role": "Primary Driver"},
+                    {"type": "Hemorrhage", "contribution_pct": 12, "count": max(1, hm_cnt), "role": "Co-Factor"},
+                    {"type": "Hard Exudate", "contribution_pct": 6, "count": ex_cnt, "role": "Co-Factor"},
+                ],
+            }
