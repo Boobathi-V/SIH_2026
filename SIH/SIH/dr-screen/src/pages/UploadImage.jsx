@@ -87,18 +87,6 @@ function UploadImage() {
     }
   }
 
-  async function loadSample(sampleName, sampleLabel) {
-    try {
-      setQualityError(null);
-      setQualityPassed(null);
-      const res = await fetch(`/samples/${sampleName}`);
-      const blob = await res.blob();
-      const file = new File([blob], sampleName, { type: "image/png" });
-      processFile(file);
-    } catch (err) {
-      alert("Error loading sample image: " + err.message);
-    }
-  }
 
   async function handleStartAnalysis() {
     if (!imagePreview) {
@@ -446,46 +434,6 @@ function UploadImage() {
             </div>
           )}
 
-          {/* Quick Sample Selector for SIH Demonstration */}
-          <div style={{ marginTop: "28px", paddingTop: "20px", borderTop: "1px solid var(--border)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px", flexWrap: "wrap", gap: "8px" }}>
-              <p style={{ fontSize: "13px", fontWeight: "700", color: "#475569", margin: 0 }}>
-                ⚡ Quick SIH Demo Samples (1-Click Quality Evaluation):
-              </p>
-              <span style={{ fontSize: "11.5px", color: "var(--text-muted)" }}>
-                Click below to test valid screenings or Quality Gate rejections
-              </span>
-            </div>
-
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              {[
-                { name: "sample_no_dr.png", label: "No DR (Healthy)", color: "#16a34a" },
-                { name: "sample_mild_dr.png", label: "Mild DR", color: "#2563eb" },
-                { name: "sample_moderate_dr.png", label: "Moderate DR", color: "#d97706" },
-                { name: "sample_severe_dr.png", label: "Severe DR", color: "#ea580c" },
-                { name: "sample_pdr.png", label: "Proliferative DR", color: "#dc2626" },
-                { name: "sample_ungradeable_blur.png", label: "🚫 Blurry Photo (Rejection Demo)", color: "#ef4444" },
-                { name: "sample_ungradeable_dark.png", label: "🚫 Dark Photo (Rejection Demo)", color: "#991b1b" },
-              ].map((s) => (
-                <button
-                  key={s.name}
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); loadSample(s.name, s.label); }}
-                  className="btn btn-secondary"
-                  style={{
-                    padding: "6px 14px",
-                    fontSize: "12px",
-                    fontWeight: s.label.includes("🚫") ? "700" : "600",
-                    borderColor: s.color,
-                    color: s.color,
-                    background: s.label.includes("🚫") ? "#fff5f5" : "#ffffff",
-                  }}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* Action Footer */}
           <div style={{ marginTop: "32px", display: "flex", justifyContent: "flex-end" }}>
