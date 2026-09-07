@@ -31,7 +31,7 @@ function Home() {
             ) : backendStatus.online ? (
               <span className="brand-badge">
                 <span className="status-dot"></span>
-                EfficientNetV2-S Model Online
+                ResNet-50 Model Online
               </span>
             ) : (
               <span className="brand-badge offline">
@@ -97,8 +97,8 @@ function Home() {
               <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>Circular retinal masking, border removal, LAB CLAHE enhancement, and gamma normalization.</p>
             </div>
             <div>
-              <h4 style={{ fontSize: "15px", color: "var(--primary)" }}>✓ EfficientNetV2-S Architecture</h4>
-              <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>High-accuracy transfer learning with multi-stage unfreezing and Multi-class Focal Loss.</p>
+              <h4 style={{ fontSize: "15px", color: "var(--primary)" }}>✓ ResNet-50 Deep Architecture</h4>
+              <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>25M-parameter deep residual network fine-tuned on APTOS 2019 with Layer4 Grad-CAM explainability.</p>
             </div>
             <div>
               <h4 style={{ fontSize: "15px", color: "var(--primary)" }}>✓ Explainable AI (Grad-CAM)</h4>

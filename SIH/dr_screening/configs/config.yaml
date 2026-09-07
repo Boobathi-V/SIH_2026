@@ -37,7 +37,7 @@ augmentation:
   coarse_dropout_size: 24
 
 model:
-  backbone: "tf_efficientnetv2_s.in21k_ft_in1k"
+  backbone: "resnet50"
   pretrained: true
   num_classes: 5
   dropout_rate: 0.3

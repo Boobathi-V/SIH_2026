@@ -51,7 +51,7 @@ IMAGENET_MEAN: Tuple[float, float, float] = (0.485, 0.456, 0.406)
 IMAGENET_STD: Tuple[float, float, float] = (0.229, 0.224, 0.225)
 
 # Primary model architecture
-DEFAULT_BACKBONE: str = "tf_efficientnetv2_s.in21k_ft_in1k"
+DEFAULT_BACKBONE: str = "resnet50"
 
 # Fallback backbones
 SUPPORTED_BACKBONES: List[str] = [

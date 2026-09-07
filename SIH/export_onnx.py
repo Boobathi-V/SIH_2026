@@ -41,7 +41,7 @@ def main():
 
     # Resolve architecture & hidden_dim
     model_cfg = config.get("model", {})
-    backbone_name = model_cfg.get("backbone", "tf_efficientnetv2_s.in21k_ft_in1k")
+    backbone_name = model_cfg.get("backbone", "resnet50")
     hidden_dim = model_cfg.get("classifier_hidden_dim", 256)
 
     if "model_config" in checkpoint and checkpoint["model_config"].get("hidden_dim") is not None:
