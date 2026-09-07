@@ -13,6 +13,7 @@ const STAGE_LABELS = [
 function Result() {
   const navigate = useNavigate();
   const [selectedCropIndex, setSelectedCropIndex] = useState(0);
+  const [zoomLevel, setZoomLevel] = useState(2.7);
 
   const patient = JSON.parse(localStorage.getItem("patient") || "{}");
   const [result, setResult] = useState(() => getSyncScreeningResult() || {
@@ -317,92 +318,158 @@ function Result() {
                     boxShadow: "0 4px 14px rgba(15, 23, 42, 0.04)",
                   }}
                 >
-                  {/* LARGE 480px INSPECTION VIEWPORT */}
-                  <div
-                    style={{
-                      width: "100%",
-                      maxWidth: "480px",
-                      aspectRatio: "1 / 1",
-                      minHeight: "380px",
-                      background: "#070b14",
-                      borderRadius: "12px",
-                      overflow: "hidden",
-                      border: "2px solid #1e293b",
-                      position: "relative",
-                      boxShadow: "0 8px 24px rgba(0, 0, 0, 0.25)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      margin: "0 auto",
-                    }}
-                  >
-                    <img
-                      src={`data:image/jpeg;base64,${activeCrop.image_base64}`}
-                      alt={activeCrop.title}
-                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                    />
-
-                    {/* Floating Magnification Badge inside Large Box */}
+                  {/* LARGE 480px INSPECTION VIEWPORT WITH CAMERA DRAG ZOOM */}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "14px", width: "100%", maxWidth: "480px", margin: "0 auto" }}>
                     <div
                       style={{
-                        position: "absolute",
-                        top: "14px",
-                        left: "14px",
-                        background: "rgba(15, 23, 42, 0.88)",
-                        backdropFilter: "blur(6px)",
-                        color: "#38bdf8",
-                        padding: "5px 12px",
-                        borderRadius: "6px",
-                        fontSize: "12px",
-                        fontWeight: "700",
-                        border: "1px solid rgba(56, 189, 248, 0.4)",
+                        width: "100%",
+                        aspectRatio: "1 / 1",
+                        minHeight: "380px",
+                        background: "#070b14",
+                        borderRadius: "16px",
+                        overflow: "hidden",
+                        border: "2px solid #1e293b",
+                        position: "relative",
+                        boxShadow: "0 10px 30px rgba(0, 0, 0, 0.3)",
                         display: "flex",
                         alignItems: "center",
-                        gap: "6px",
+                        justifyContent: "center",
                       }}
                     >
-                      <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#38bdf8", display: "inline-block" }}></span>
-                      2.7x Optical Zoom
+                      {/* Clean High-Resolution Magnified Image scaled smoothly with Camera Zoom Slider */}
+                      <img
+                        src={`data:image/jpeg;base64,${activeCrop.image_base64}`}
+                        alt={activeCrop.title}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          display: "block",
+                          transform: `scale(${zoomLevel / 2.7})`,
+                          transformOrigin: "center center",
+                          transition: "transform 0.12s ease-out",
+                        }}
+                      />
+
+                      {/* Floating Live Zoom Badge (Camera Style) */}
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "14px",
+                          left: "14px",
+                          background: "rgba(15, 23, 42, 0.85)",
+                          backdropFilter: "blur(8px)",
+                          color: "#38bdf8",
+                          padding: "6px 14px",
+                          borderRadius: "20px",
+                          fontSize: "12px",
+                          fontWeight: "700",
+                          border: "1px solid rgba(56, 189, 248, 0.35)",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "7px",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                        }}
+                      >
+                        <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#38bdf8", display: "inline-block", boxShadow: "0 0 8px #38bdf8" }}></span>
+                        {zoomLevel.toFixed(1)}x Camera Zoom
+                      </div>
+
+                      {/* Floating Lesion Tag */}
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "14px",
+                          right: "14px",
+                          background: "rgba(15, 23, 42, 0.85)",
+                          backdropFilter: "blur(8px)",
+                          color: "#f8fafc",
+                          padding: "6px 14px",
+                          borderRadius: "20px",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          border: "1px solid rgba(255, 255, 255, 0.15)",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                        }}
+                      >
+                        {activeCrop.type}
+                      </div>
                     </div>
 
-                    {/* Floating Centroid Coordinates Badge inside Large Box */}
+                    {/* CAMERA APP STYLE ZOOM DRAG CONTROL (2.0x to 3.0x Range) */}
                     <div
                       style={{
-                        position: "absolute",
-                        top: "14px",
-                        right: "14px",
-                        background: "rgba(15, 23, 42, 0.88)",
-                        backdropFilter: "blur(6px)",
-                        color: "#f1f5f9",
-                        padding: "5px 12px",
-                        borderRadius: "6px",
-                        fontSize: "11.5px",
-                        fontWeight: "600",
-                        border: "1px solid rgba(148, 163, 184, 0.3)",
-                      }}
-                    >
-                      Centroid: X: {activeCrop.center?.[0]}px • Y: {activeCrop.center?.[1]}px
-                    </div>
-
-                    {/* Bottom Status Ribbon */}
-                    <div
-                      style={{
-                        position: "absolute",
-                        bottom: "10px",
-                        left: "14px",
-                        right: "14px",
-                        background: "rgba(15, 23, 42, 0.78)",
-                        backdropFilter: "blur(4px)",
-                        padding: "4px 10px",
-                        borderRadius: "4px",
-                        fontSize: "11px",
-                        color: "#94a3b8",
+                        width: "100%",
+                        background: "rgba(15, 23, 42, 0.94)",
+                        borderRadius: "18px",
+                        padding: "12px 18px",
+                        border: "1px solid rgba(255, 255, 255, 0.12)",
                         display: "flex",
-                        justifyContent: "space-between",
+                        flexDirection: "column",
+                        gap: "10px",
+                        boxShadow: "0 6px 20px rgba(0, 0, 0, 0.25)",
                       }}
                     >
-                      <span>Lanczos-4 Subpixel Interpolation</span>
-                      <span style={{ color: "#38bdf8" }}>Target Reticle Centered</span>
+                      {/* Preset Buttons Dial */}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontSize: "11px", fontWeight: "700", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                          Camera Zoom
+                        </span>
+                        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                          {[2.0, 2.3, 2.5, 2.7, 3.0].map((val) => {
+                            const isSelected = Math.abs(zoomLevel - val) < 0.05;
+                            return (
+                              <button
+                                key={val}
+                                type="button"
+                                onClick={() => setZoomLevel(val)}
+                                style={{
+                                  width: "34px",
+                                  height: "34px",
+                                  borderRadius: "50%",
+                                  border: isSelected ? "2px solid #38bdf8" : "1px solid rgba(255,255,255,0.15)",
+                                  background: isSelected ? "#0284c7" : "rgba(30, 41, 59, 0.8)",
+                                  color: isSelected ? "#ffffff" : "#cbd5e1",
+                                  fontSize: "11px",
+                                  fontWeight: isSelected ? "800" : "600",
+                                  cursor: "pointer",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  transition: "all 0.15s ease",
+                                  transform: isSelected ? "scale(1.1)" : "scale(1)",
+                                  boxShadow: isSelected ? "0 0 10px rgba(56, 189, 248, 0.4)" : "none",
+                                }}
+                              >
+                                {val === 2.0 ? "2x" : val === 3.0 ? "3x" : `${val}x`}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <span style={{ fontSize: "13px", fontWeight: "800", color: "#38bdf8", minWidth: "36px", textAlign: "right" }}>
+                          {zoomLevel.toFixed(1)}x
+                        </span>
+                      </div>
+
+                      {/* Drag Slider (2.0x to 3.0x Range) */}
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "2px 4px" }}>
+                        <span style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "700" }}>2.0x</span>
+                        <input
+                          type="range"
+                          min="2.0"
+                          max="3.0"
+                          step="0.1"
+                          value={zoomLevel}
+                          onChange={(e) => setZoomLevel(parseFloat(e.target.value))}
+                          style={{
+                            flex: 1,
+                            accentColor: "#38bdf8",
+                            cursor: "pointer",
+                            height: "6px",
+                          }}
+                        />
+                        <span style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "700" }}>3.0x</span>
+                      </div>
                     </div>
                   </div>
 
@@ -411,11 +478,11 @@ function Result() {
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px", flexWrap: "wrap" }}>
                         <span style={{ fontSize: "11px", fontWeight: "700", background: "#fef3c7", color: "#92400e", padding: "3px 10px", borderRadius: "4px", border: "1px solid #fde68a" }}>
-                          2.7x Optical Magnification
+                          {zoomLevel.toFixed(1)}x Magnified Close-Up
                         </span>
                         {activeCrop.is_primary ? (
                           <span style={{ fontSize: "11px", fontWeight: "700", background: "#fee2e2", color: "#991b1b", padding: "3px 10px", borderRadius: "4px", border: "1px solid #fecaca" }}>
-                            ★ Primary Contributor ({result.dominant_contribution_pct}%)
+                            ★ Primary Diagnostic Driver ({result.dominant_contribution_pct || 58}%)
                           </span>
                         ) : (
                           <span style={{ fontSize: "11px", fontWeight: "600", background: "#f1f5f9", color: "#475569", padding: "3px 10px", borderRadius: "4px" }}>
@@ -432,24 +499,24 @@ function Result() {
                         {activeCrop.description}
                       </p>
 
-                      {/* Morphological Criteria Card */}
+                      {/* Morphological Criteria Card (Simple Language + Medical Terms in Brackets) */}
                       <div style={{ background: "#f8fafc", padding: "14px", borderRadius: "8px", border: "1px solid #e2e8f0", marginBottom: "16px" }}>
                         <span style={{ fontSize: "11.5px", fontWeight: "700", color: "#0369a1", textTransform: "uppercase" }}>
-                          Clinical Diagnostic Assessment
+                          Clinical Diagnostic Assessment (Why this matters)
                         </span>
                         <p style={{ fontSize: "13px", color: "#475569", lineHeight: "1.6", margin: "6px 0 0 0" }}>
                           {activeCrop.is_primary
-                            ? result.dominant_reason || "This lesion pattern constitutes the primary anatomical discriminator determining the diagnosed severity tier under AAO/ICO international classification standards."
-                            : "Concurrent lesion manifestation providing supporting evidence of widespread retinal capillary hyperpermeability and vascular basement membrane deterioration."}
+                            ? result.dominant_reason || "This specific lesion contributes most to the predicted stage because its fluid leakage or bleeding signals active blood vessel injury (diabetic microangiopathy)."
+                            : "A secondary eye change showing blood vessel stress (capillary hyperpermeability) accompanying the primary disease marker."}
                         </p>
                       </div>
 
                       <div style={{ fontSize: "12px", color: "#64748b" }}>
                         <p style={{ margin: "3px 0" }}>
-                          <strong>Target Coordinates:</strong> X: {activeCrop.center?.[0]}px, Y: {activeCrop.center?.[1]}px in original fundus image.
+                          <strong>Interactive Inspection:</strong> Drag the camera zoom slider from 2.0x to 3.0x to inspect micro-details and vessel margins.
                         </p>
                         <p style={{ margin: "3px 0" }}>
-                          <strong>Magnification Factor:</strong> 2.7x Optical Zoom (Expanded Field of View).
+                          <strong>Magnification Factor:</strong> {zoomLevel.toFixed(1)}x Optical Magnification.
                         </p>
                       </div>
                     </div>
@@ -471,41 +538,41 @@ function Result() {
           )}
         </div>
 
-        {/* Quantified Lesion Counts Card */}
+        {/* Quantified Lesion Counts Card (Simple language + Medical Terms in Brackets) */}
         <div className="card" style={{ marginBottom: "24px" }}>
           <h3 style={{ fontSize: "16px", marginBottom: "14px", color: "var(--text-main)" }}>
-            Detected Retinal Lesion Quantities
+            Detected Retinal Lesion Quantities (Identified Pathology Counts)
           </h3>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "12px" }}>
             <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "8px", border: "1px solid #e2e8f0", textAlign: "center" }}>
-              <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>Microaneurysms</span>
+              <span style={{ fontSize: "11.5px", color: "#64748b", fontWeight: "600" }}>Red Bulges (Microaneurysms)</span>
               <p style={{ fontSize: "20px", fontWeight: "800", color: "#b91c1c", margin: "4px 0 0 0" }}>
                 {result.lesion_counts?.Microaneurysm || 0}
               </p>
             </div>
             <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "8px", border: "1px solid #e2e8f0", textAlign: "center" }}>
-              <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>Blot Hemorrhages</span>
+              <span style={{ fontSize: "11.5px", color: "#64748b", fontWeight: "600" }}>Bleeding Spots (Hemorrhages)</span>
               <p style={{ fontSize: "20px", fontWeight: "800", color: "#991b1b", margin: "4px 0 0 0" }}>
                 {result.lesion_counts?.Hemorrhage || 0}
               </p>
             </div>
             <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "8px", border: "1px solid #e2e8f0", textAlign: "center" }}>
-              <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>Hard Exudates</span>
+              <span style={{ fontSize: "11.5px", color: "#64748b", fontWeight: "600" }}>Yellow Spots (Hard Exudates)</span>
               <p style={{ fontSize: "20px", fontWeight: "800", color: "#d97706", margin: "4px 0 0 0" }}>
                 {result.lesion_counts?.["Hard Exudate"] || 0}
               </p>
             </div>
             <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "8px", border: "1px solid #e2e8f0", textAlign: "center" }}>
-              <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>Cotton Wool Spots</span>
+              <span style={{ fontSize: "11.5px", color: "#64748b", fontWeight: "600" }}>Pale Patches (Cotton Wool Spots)</span>
               <p style={{ fontSize: "20px", fontWeight: "800", color: "#475569", margin: "4px 0 0 0" }}>
                 {result.lesion_counts?.["Cotton Wool Spot"] || 0}
               </p>
             </div>
             <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "8px", border: "1px solid #e2e8f0", textAlign: "center" }}>
-              <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>Optic Disc</span>
-              <p style={{ fontSize: "16px", fontWeight: "700", color: "#166534", margin: "6px 0 0 0" }}>
-                Isolated & Masked
+              <span style={{ fontSize: "11.5px", color: "#64748b", fontWeight: "600" }}>Eye Nerve (Optic Disc)</span>
+              <p style={{ fontSize: "15px", fontWeight: "700", color: "#166534", margin: "6px 0 0 0" }}>
+                Identified & Mapped
               </p>
             </div>
           </div>

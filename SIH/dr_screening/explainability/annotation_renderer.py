@@ -77,143 +77,114 @@ class RetinalAnnotationRenderer:
         shadow_color = (15, 23, 42)
 
         # 1. Annotate Optic Disc (Prominent white circle + leader line)
+        # 1. Annotate Optic Disc (Prominent white/cyan circle + leader line)
         if optic_disc_info.get("detected"):
             cx, cy = optic_disc_info["center"]
             rad = optic_disc_info["radius"]
 
-            # Draw clean white circle around disc
+            # Draw clean circle around optic disc
             bbox = [cx - rad, cy - rad, cx + rad, cy + rad]
-            draw.ellipse(bbox, outline=white_color, width=circle_thick)
+            draw.ellipse(bbox, outline=(56, 189, 248), width=circle_thick)
 
             # Place Optic Disc label on the side away from center
             dx = -1 if cx < w // 2 else 1
             dy = 1 if cy > h // 2 else -1
 
             start_pt = (cx + int(dx * rad * 0.7), cy + int(dy * rad * 0.7))
-            label_x = max(20, min(w - 140, cx + int(dx * rad * 2.2)))
+            label_x = max(20, min(w - 220, cx + int(dx * rad * 2.2)))
             label_y = max(20, min(h - 40, cy + int(dy * rad * 2.5)))
 
             self._draw_leader_line_with_label(
                 draw=draw,
                 start_pt=start_pt,
                 label_pt=(label_x, label_y),
-                text="Optic Disc",
+                text="Eye Nerve Head (Optic Disc)",
                 font=current_font,
                 line_width=line_thick,
             )
 
-        # 2. Annotate Retinal Blood Vessels (Arterioles & Venules)
-        art_points = vessel_info.get("arteriole_points", [])
-        if art_points:
-            pt = art_points[0]
-            label_x = max(20, min(w - 120, pt[0] - int(70 * scale_factor)))
-            label_y = max(20, min(h - 40, pt[1] + int(80 * scale_factor)))
-            self._draw_leader_line_with_label(
-                draw=draw,
-                start_pt=pt,
-                label_pt=(label_x, label_y),
-                text="Arterioles",
-                font=current_font,
-                line_width=line_thick,
-            )
-
-        ven_points = vessel_info.get("venule_points", [])
-        if ven_points:
-            pt = ven_points[0]
-            label_x = max(20, min(w - 120, pt[0] - int(60 * scale_factor)))
-            label_y = max(20, min(h - 40, pt[1] + int(80 * scale_factor)))
-            self._draw_leader_line_with_label(
-                draw=draw,
-                start_pt=pt,
-                label_pt=(label_x, label_y),
-                text="Venules",
-                font=current_font,
-                line_width=line_thick,
-            )
-
-        # 3. Annotate Microaneurysms
+        # 2. Annotate Confirmed Microaneurysms
         mas = [l for l in lesion_info.get("lesions", []) if l["type"] == "Microaneurysm"]
         if mas:
-            # Draw circles around top microaneurysms
+            # Draw distinct red/white circles around top microaneurysms
             for ma in mas[:4]:
                 mx, my = ma["center"]
-                m_rad = max(4, int(ma.get("radius", 4) * scale_factor * 1.5))
-                draw.ellipse([mx - m_rad, my - m_rad, mx + m_rad, my + m_rad], outline=white_color, width=max(1, line_thick - 1))
+                m_rad = max(5, int(ma.get("radius", 4) * scale_factor * 1.5))
+                draw.ellipse([mx - m_rad, my - m_rad, mx + m_rad, my + m_rad], outline=(239, 68, 68), width=line_thick)
 
             # Point to the most prominent microaneurysm
             target_ma = mas[0]
             tx, ty = target_ma["center"]
-            lbl_x = max(20, min(w - 180, tx - int(60 * scale_factor)))
+            lbl_x = max(20, min(w - 240, tx - int(60 * scale_factor)))
             lbl_y = max(20, min(h - 40, ty - int(70 * scale_factor)))
             self._draw_leader_line_with_label(
                 draw=draw,
                 start_pt=(tx, ty),
                 label_pt=(lbl_x, lbl_y),
-                text="Microaneurysms",
+                text="Red Dot (Microaneurysm)",
                 font=current_font,
                 line_width=line_thick,
             )
 
-        # 4. Annotate Hard Exudates
+        # 3. Annotate Confirmed Hard Exudates
         exs = [l for l in lesion_info.get("lesions", []) if l["type"] == "Hard Exudate"]
         if exs:
-            # Draw ellipse/contour around exudates
             for ex in exs[:3]:
                 bx, by, bw, bh_box = ex.get("bbox", (ex["center"][0] - 8, ex["center"][1] - 8, 16, 16))
                 pad = max(2, int(4 * scale_factor))
-                draw.ellipse([bx - pad, by - pad, bx + bw + pad, by + bh_box + pad], outline=white_color, width=line_thick)
+                draw.ellipse([bx - pad, by - pad, bx + bw + pad, by + bh_box + pad], outline=(245, 158, 11), width=line_thick)
 
             target_ex = exs[0]
             tx, ty = target_ex["center"]
-            lbl_x = max(20, min(w - 140, tx + int(40 * scale_factor)))
+            lbl_x = max(20, min(w - 220, tx + int(40 * scale_factor)))
             lbl_y = max(20, min(h - 40, ty - int(80 * scale_factor)))
             self._draw_leader_line_with_label(
                 draw=draw,
                 start_pt=(tx, ty),
                 label_pt=(lbl_x, lbl_y),
-                text="Exudates",
+                text="Yellow Spot (Hard Exudate)",
                 font=current_font,
                 line_width=line_thick,
             )
 
-        # 5. Annotate Hemorrhages
+        # 4. Annotate Confirmed Hemorrhages
         hms = [l for l in lesion_info.get("lesions", []) if l["type"] == "Hemorrhage"]
         if hms:
             for hm in hms[:2]:
                 bx, by, bw, bh_box = hm.get("bbox", (hm["center"][0] - 10, hm["center"][1] - 10, 20, 20))
                 pad = max(2, int(4 * scale_factor))
-                draw.rectangle([bx - pad, by - pad, bx + bw + pad, by + bh_box + pad], outline=white_color, width=line_thick)
+                draw.rectangle([bx - pad, by - pad, bx + bw + pad, by + bh_box + pad], outline=(220, 38, 38), width=line_thick)
 
             target_hm = hms[0]
             tx, ty = target_hm["center"]
-            lbl_x = max(20, min(w - 160, tx + int(60 * scale_factor)))
+            lbl_x = max(20, min(w - 240, tx + int(60 * scale_factor)))
             lbl_y = max(20, min(h - 40, ty - int(50 * scale_factor)))
             self._draw_leader_line_with_label(
                 draw=draw,
                 start_pt=(tx, ty),
                 label_pt=(lbl_x, lbl_y),
-                text="Haemorrhages",
+                text="Bleeding Spot (Hemorrhage)",
                 font=current_font,
                 line_width=line_thick,
             )
 
-        # 6. Annotate Cotton-Wool Spots
+        # 5. Annotate Cotton-Wool Spots
         cwss = [l for l in lesion_info.get("lesions", []) if l["type"] == "Cotton Wool Spot"]
         if cwss:
             for cws in cwss[:2]:
                 bx, by, bw, bh_box = cws.get("bbox", (cws["center"][0] - 15, cws["center"][1] - 15, 30, 30))
                 pad = max(4, int(6 * scale_factor))
-                draw.ellipse([bx - pad, by - pad, bx + bw + pad, by + bh_box + pad], outline=white_color, width=line_thick)
+                draw.ellipse([bx - pad, by - pad, bx + bw + pad, by + bh_box + pad], outline=(203, 213, 225), width=line_thick)
 
             target_cws = cwss[0]
             tx, ty = target_cws["center"]
-            lbl_x = max(20, min(w - 180, tx - int(100 * scale_factor)))
+            lbl_x = max(20, min(w - 240, tx - int(100 * scale_factor)))
             lbl_y = max(20, min(h - 40, ty + int(10 * scale_factor)))
             self._draw_leader_line_with_label(
                 draw=draw,
                 start_pt=(tx, ty),
                 label_pt=(lbl_x, lbl_y),
-                text="Cotton-Wool Spot",
+                text="Pale Patch (Cotton Wool Spot)",
                 font=current_font,
                 line_width=line_thick,
             )

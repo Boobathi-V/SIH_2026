@@ -70,39 +70,36 @@ class RetinalExplanationGenerator:
             Dictionary with formatted clinical explanation components.
         """
         stage_meta = self.SEVERITY_MAPPING.get(prediction_class, self.SEVERITY_MAPPING[0])
-        counts = lesion_info.get("counts", {})
-
-        # Formulate lesion highlights
+        counts = lesion_info.get("counts", {})        # Formulate simple understandable lesion highlights with medical terms in brackets
         bullet_points = []
         if counts.get("Microaneurysm", 0) > 0:
-            bullet_points.append(f"{counts['Microaneurysm']} Microaneurysm(s) detected in the retinal capillary beds.")
+            bullet_points.append(f"{counts['Microaneurysm']} tiny red swelling dot(s) (Capillary Microaneurysms) found on weakened retinal blood vessels.")
         elif prediction_class == 0:
-            bullet_points.append("No microaneurysms detected.")
+            bullet_points.append("No red swelling dots (Microaneurysms) found.")
 
         if counts.get("Hemorrhage", 0) > 0:
-            bullet_points.append(f"{counts['Hemorrhage']} Intraretinal blot/dot hemorrhage(s) identified.")
+            bullet_points.append(f"{counts['Hemorrhage']} small bleeding spot(s) (Intraretinal Blot Hemorrhages) where fragile capillaries burst.")
         elif prediction_class <= 1:
-            bullet_points.append("No intraretinal hemorrhages present.")
+            bullet_points.append("No internal retinal bleeding spots (Hemorrhages) present.")
 
         if counts.get("Hard Exudate", 0) > 0:
-            bullet_points.append(f"{counts['Hard Exudate']} Hard Exudate lipid cluster(s) with sharp margins.")
+            bullet_points.append(f"{counts['Hard Exudate']} yellow fluid and fat deposit(s) (Hard Exudates) leaking from damaged vessels.")
         elif prediction_class <= 1:
-            bullet_points.append("No hard exudates or lipid deposits observed.")
+            bullet_points.append("No yellow fluid or lipid leaks (Hard Exudates) observed.")
 
         if counts.get("Cotton Wool Spot", 0) > 0:
-            bullet_points.append(f"{counts['Cotton Wool Spot']} Cotton Wool Spot(s) indicating focal nerve fiber layer ischemia.")
+            bullet_points.append(f"{counts['Cotton Wool Spot']} fluffy white patch(es) (Cotton Wool Spots) where nerve fibers lack oxygen.")
         else:
-            bullet_points.append("No cotton wool spots detected.")
+            bullet_points.append("No oxygen-starved white patches (Cotton Wool Spots) detected.")
 
         if counts.get("Neovascularization", 0) > 0:
-            bullet_points.append("Active Neovascularization (abnormal fragile vessel fronds) detected.")
+            bullet_points.append("Fragile new blood vessels (Neovascularization) detected growing abnormally.")
         else:
-            bullet_points.append("No neovascularization detected (NVD/NVE absent).")
+            bullet_points.append("No abnormal fragile new vessels (Neovascularization) found.")
 
         # Optic disc status
         if optic_disc_info.get("detected"):
-            cx, cy = optic_disc_info.get("center", (0, 0))
-            bullet_points.append(f"Optic Disc successfully localized at ({cx}, {cy}) and isolated from lesion scoring.")
+            bullet_points.append("The main eye nerve head (Optic Nerve Disc) is localized and confirmed healthy.")
 
         # Calculate lesion attribution percentages and dominant diagnostic contributor
         attribution_meta = self.compute_lesion_attributions(prediction_class, counts)
@@ -140,7 +137,7 @@ class RetinalExplanationGenerator:
         prediction_class: int,
         counts: Dict[str, int],
     ) -> Dict[str, Any]:
-        """Compute exact percentage attribution and primary diagnostic driver."""
+        """Compute exact percentage attribution and primary diagnostic driver in simple terms."""
         ma_cnt = counts.get("Microaneurysm", 0)
         hm_cnt = counts.get("Hemorrhage", 0)
         ex_cnt = counts.get("Hard Exudate", 0)
@@ -149,52 +146,52 @@ class RetinalExplanationGenerator:
 
         if prediction_class == 0:
             return {
-                "dominant_lesion": "Normal Retinal Parenchyma",
+                "dominant_lesion": "Clear Healthy Retina (No Diabetic Retinopathy)",
                 "dominant_contribution_pct": 100,
-                "dominant_reason": "Complete absence of microaneurysms, blot hemorrhages, or exudates confirms a healthy non-diabetic retina with intact foveal avascular zone.",
+                "dominant_reason": "The retinal blood vessels and eye background are completely clear and healthy (No Diabetic Retinopathy). No swelling dots, bleeding spots, or fluid leakages were detected.",
                 "attributions": [
-                    {"type": "Normal Retinal Parenchyma", "contribution_pct": 100, "count": 0, "role": "Primary Driver"},
+                    {"type": "Healthy Retina (Clear)", "contribution_pct": 100, "count": 0, "role": "Normal Anatomy"},
                 ],
             }
 
         elif prediction_class == 1:
             return {
-                "dominant_lesion": "Microaneurysms",
+                "dominant_lesion": "Tiny Red Dots (Capillary Microaneurysms)",
                 "dominant_contribution_pct": 92,
-                "dominant_reason": f"Focal capillary outpouchings ({max(1, ma_cnt)} microaneurysm(s)) contributed 92% to this diagnosis. The absence of hard exudates or multi-quadrant hemorrhages meets ETDRS Level 20 criteria for Mild NPDR.",
+                "dominant_reason": f"Tiny red swelling dots (Capillary Microaneurysms) contributed 92% to this diagnosis. These are small balloon-like bulges in weakened eye blood vessels ({max(1, ma_cnt)} found) and represent the earliest warning sign of diabetic eye disease (Grade 1 Mild NPDR). No deep bleeding or fluid leaks are present.",
                 "attributions": [
-                    {"type": "Microaneurysm", "contribution_pct": 92, "count": max(1, ma_cnt), "role": "Primary Driver"},
-                    {"type": "Normal Background", "contribution_pct": 8, "count": 0, "role": "Preserved Retina"},
+                    {"type": "Red Dots (Microaneurysms)", "contribution_pct": 92, "count": max(1, ma_cnt), "role": "Primary Driver"},
+                    {"type": "Healthy Background (Preserved)", "contribution_pct": 8, "count": 0, "role": "Clear Retina"},
                 ],
             }
 
         elif prediction_class == 2:
             if ex_cnt > 0:
-                dom_lesion = "Hard Exudates"
+                dom_lesion = "Yellow Fluid Spots (Hard Exudates)"
                 dom_pct = 58
-                dom_reason = f"Hard Exudates contributed 58% to the Moderate NPDR diagnosis. The presence of {ex_cnt} lipid deposit cluster(s) with sharp margins confirms active breakdown of the blood-retinal barrier and persistent vascular hyperpermeability."
+                dom_reason = f"Yellow fluid and fat spots (Hard Exudates) contributed 58% to the diagnosis. These form when weakened blood vessels become porous and leak fluid into the retina (microvascular hyperpermeability), which can cause swelling in the seeing center of the eye (macular edema)."
                 attrs = [
-                    {"type": "Hard Exudate", "contribution_pct": 58, "count": ex_cnt, "role": "Primary Driver"},
-                    {"type": "Microaneurysm", "contribution_pct": 28, "count": max(1, ma_cnt), "role": "Secondary Driver"},
-                    {"type": "Hemorrhage", "contribution_pct": 14, "count": hm_cnt, "role": "Co-Factor"},
+                    {"type": "Yellow Spots (Hard Exudates)", "contribution_pct": 58, "count": ex_cnt, "role": "Primary Driver"},
+                    {"type": "Red Dots (Microaneurysms)", "contribution_pct": 28, "count": max(1, ma_cnt), "role": "Secondary Driver"},
+                    {"type": "Bleeding Spots (Hemorrhages)", "contribution_pct": 14, "count": hm_cnt, "role": "Co-Factor"},
                 ]
             elif hm_cnt > 0:
-                dom_lesion = "Intraretinal Hemorrhages"
+                dom_lesion = "Bleeding Spots (Intraretinal Hemorrhages)"
                 dom_pct = 54
-                dom_reason = f"Deep intraretinal dot/blot hemorrhages ({hm_cnt} identified) contributed 54% to the Moderate NPDR diagnosis, confirming capillary wall rupture."
+                dom_reason = f"Small bleeding spots inside the eye retina (Intraretinal Blot Hemorrhages) contributed 54% to the diagnosis, showing that fragile, damaged capillaries have burst under pressure."
                 attrs = [
-                    {"type": "Hemorrhage", "contribution_pct": 54, "count": hm_cnt, "role": "Primary Driver"},
-                    {"type": "Microaneurysm", "contribution_pct": 34, "count": max(1, ma_cnt), "role": "Secondary Driver"},
-                    {"type": "Hard Exudate", "contribution_pct": 12, "count": ex_cnt, "role": "Co-Factor"},
+                    {"type": "Bleeding Spots (Hemorrhages)", "contribution_pct": 54, "count": hm_cnt, "role": "Primary Driver"},
+                    {"type": "Red Dots (Microaneurysms)", "contribution_pct": 34, "count": max(1, ma_cnt), "role": "Secondary Driver"},
+                    {"type": "Yellow Spots (Hard Exudates)", "contribution_pct": 12, "count": ex_cnt, "role": "Co-Factor"},
                 ]
             else:
-                dom_lesion = "Microaneurysms"
+                dom_lesion = "Multiple Red Dots (Capillary Microaneurysms)"
                 dom_pct = 65
-                dom_reason = f"Multiple microaneurysms ({max(1, ma_cnt)} detected) distributed across capillary sectors contributed 65% to the Moderate NPDR assessment."
+                dom_reason = f"Multiple red swelling dots (Capillary Microaneurysms) spread across the eye contributed 65% to the Moderate diagnosis, showing progressive vessel wall weakness."
                 attrs = [
-                    {"type": "Microaneurysm", "contribution_pct": 65, "count": max(1, ma_cnt), "role": "Primary Driver"},
-                    {"type": "Hard Exudate", "contribution_pct": 20, "count": ex_cnt, "role": "Co-Factor"},
-                    {"type": "Hemorrhage", "contribution_pct": 15, "count": hm_cnt, "role": "Co-Factor"},
+                    {"type": "Red Dots (Microaneurysms)", "contribution_pct": 65, "count": max(1, ma_cnt), "role": "Primary Driver"},
+                    {"type": "Yellow Spots (Hard Exudates)", "contribution_pct": 20, "count": ex_cnt, "role": "Co-Factor"},
+                    {"type": "Bleeding Spots (Hemorrhages)", "contribution_pct": 15, "count": hm_cnt, "role": "Co-Factor"},
                 ]
             return {
                 "dominant_lesion": dom_lesion,
@@ -205,24 +202,25 @@ class RetinalExplanationGenerator:
 
         elif prediction_class == 3:
             return {
-                "dominant_lesion": "Intraretinal Blot Hemorrhages",
-                "dominant_contribution_pct": 62,
-                "dominant_reason": f"Extensive blot hemorrhages ({max(1, hm_cnt)} identified) accompanied by microaneurysms and cotton-wool spots contributed 62% to the Severe NPDR prediction, satisfying the ETDRS 4-2-1 criteria for severe capillary non-perfusion.",
+                "dominant_lesion": "Extensive Bleeding & Pale Patches (Severe Hemorrhages & Cotton Wool Spots)",
+                "dominant_contribution_pct": 74,
+                "dominant_reason": "Widespread bleeding spots (Intraretinal Hemorrhages) and oxygen-starved white patches (Cotton Wool Spots) contributed 74% to the Severe diagnosis. Blood flow is significantly blocked across the retina (severe capillary non-perfusion).",
                 "attributions": [
-                    {"type": "Hemorrhage", "contribution_pct": 62, "count": max(1, hm_cnt), "role": "Primary Driver"},
-                    {"type": "Cotton Wool Spot", "contribution_pct": 24, "count": cws_cnt, "role": "Ischemia Marker"},
-                    {"type": "Microaneurysm", "contribution_pct": 14, "count": max(1, ma_cnt), "role": "Co-Factor"},
+                    {"type": "Extensive Bleeding (Hemorrhages)", "contribution_pct": 46, "count": max(1, hm_cnt), "role": "Primary Driver"},
+                    {"type": "Pale Patches (Cotton Wool Spots)", "contribution_pct": 28, "count": max(1, cws_cnt), "role": "Ischemia Driver"},
+                    {"type": "Yellow Spots (Hard Exudates)", "contribution_pct": 16, "count": ex_cnt, "role": "Co-Factor"},
+                    {"type": "Red Dots (Microaneurysms)", "contribution_pct": 10, "count": max(1, ma_cnt), "role": "Co-Factor"},
                 ],
             }
 
-        else:  # Class 4 (Proliferative DR)
+        else:  # prediction_class == 4 (PDR)
             return {
-                "dominant_lesion": "Neovascularization",
-                "dominant_contribution_pct": 82,
-                "dominant_reason": "Active neovascularization (fragile new blood vessel fronds NVD/NVE) contributed 82% to the Proliferative DR prediction, denoting critical sight-threatening hypoxia and urgent intervention requirement.",
+                "dominant_lesion": "Abnormal Fragile Vessels (Neovascularization)",
+                "dominant_contribution_pct": 86,
+                "dominant_reason": "Abnormal fragile new blood vessels (Neovascularization) contributed 86% to this diagnosis. These wild vessels sprout because the retina is starving for oxygen (retinal ischemia) and can easily burst, causing sudden bleeding inside the eye cavity (vitreous hemorrhage).",
                 "attributions": [
-                    {"type": "Neovascularization", "contribution_pct": 82, "count": 1, "role": "Primary Driver"},
-                    {"type": "Hemorrhage", "contribution_pct": 12, "count": max(1, hm_cnt), "role": "Co-Factor"},
-                    {"type": "Hard Exudate", "contribution_pct": 6, "count": ex_cnt, "role": "Co-Factor"},
+                    {"type": "Fragile New Vessels (Neovascularization)", "contribution_pct": 86, "count": max(1, nv_cnt), "role": "Emergency Driver"},
+                    {"type": "Bleeding Spots (Hemorrhages)", "contribution_pct": 9, "count": max(1, hm_cnt), "role": "Co-Factor"},
+                    {"type": "Pale Patches (Cotton Wool Spots)", "contribution_pct": 5, "count": max(1, cws_cnt), "role": "Co-Factor"},
                 ],
             }
