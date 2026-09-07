@@ -75,8 +75,11 @@ export async function predictFundusImage(imageFile) {
     if (response.status === 422 && errData.error === "ImageQualityRejection") {
       const error = new Error(errData.detail || "Image rejected by Retinal Quality Gate.");
       error.isQualityRejection = true;
-      error.qualityGate = errData.quality_gate;
-      error.recaptureGuidance = errData.recapture_guidance;
+      error.qualityGate = errData.quality_gate || {};
+      error.failureCategory = errData.failure_category || errData.quality_gate?.failure_category;
+      error.detailedExplanation = errData.detailed_explanation || errData.quality_gate?.detailed_explanation;
+      error.checks = errData.checks || errData.quality_gate?.checks || [];
+      error.recaptureGuidance = errData.recapture_guidance || errData.quality_gate?.recapture_guidance;
       throw error;
     }
 

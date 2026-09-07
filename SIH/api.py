@@ -67,6 +67,9 @@ class QualityGateResponse(BaseModel):
     quality_score: float
     message: str
     recapture_guidance: str
+    failure_category: Optional[str] = None
+    detailed_explanation: Optional[str] = None
+    checks: Optional[List[Dict[str, Any]]] = None
     metrics: Dict[str, Any] = {}
 
 
@@ -171,13 +174,17 @@ async def predict_retina(
             )
         except UngradeableImageError as qe:
             # Quality Gate rejected ungradeable image with clinical guidance
+            q_res = qe.quality_result
             return JSONResponse(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 content={
                     "error": "ImageQualityRejection",
-                    "detail": qe.quality_result.get("message", "Ungradeable image"),
-                    "quality_gate": qe.quality_result,
-                    "recapture_guidance": qe.quality_result.get("recapture_guidance", "Please provide a clear fundus image.")
+                    "detail": q_res.get("message", "Ungradeable image"),
+                    "failure_category": q_res.get("failure_category"),
+                    "detailed_explanation": q_res.get("detailed_explanation"),
+                    "checks": q_res.get("checks", []),
+                    "quality_gate": q_res,
+                    "recapture_guidance": q_res.get("recapture_guidance", "Please provide a clear fundus image.")
                 }
             )
 

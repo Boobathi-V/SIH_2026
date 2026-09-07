@@ -79,7 +79,11 @@ function Analysis() {
           setQualityRejection({
             message: err.message,
             recaptureGuidance: err.recaptureGuidance,
-            qualityGate: err.qualityGate,
+            qualityGate: err.qualityGate || {},
+            failureCategory: err.failureCategory || err.qualityGate?.failure_category,
+            detailedExplanation: err.detailedExplanation || err.qualityGate?.detailed_explanation,
+            checks: err.checks || err.qualityGate?.checks || [],
+            qualityScore: err.qualityGate?.quality_score,
           });
         } else {
           setError(err.message || "Failed to communicate with AI Model backend.");
@@ -170,50 +174,148 @@ function Analysis() {
               style={{
                 textAlign: "left",
                 background: "#fef2f2",
-                border: "1px solid #fecaca",
-                borderRadius: "12px",
+                border: "2px solid #ef4444",
+                borderRadius: "14px",
                 padding: "24px",
+                boxShadow: "0 8px 24px rgba(239, 68, 68, 0.12)",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
-                <span style={{ fontSize: "32px" }}>🚫</span>
-                <div>
-                  <h3 style={{ color: "#991b1b", fontSize: "20px", margin: 0, fontWeight: "700" }}>
-                    Image Rejected by Quality Gate
-                  </h3>
-                  <p style={{ fontSize: "13px", color: "#b91c1c", margin: 0 }}>
-                    SIH26038 Automated Pre-Screening Quality Assessment
-                  </p>
+              {/* Header */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "10px", marginBottom: "14px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <span style={{ fontSize: "32px", lineHeight: 1 }}>🚫</span>
+                  <div>
+                    <span style={{ fontSize: "11px", fontWeight: "800", color: "#b91c1c", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                      Clinical Pre-Screening Quality Gate
+                    </span>
+                    <h3 style={{ color: "#991b1b", fontSize: "20px", margin: "2px 0 0 0", fontWeight: "800" }}>
+                      {qualityRejection.message || "Image Rejected by Quality Gate"}
+                    </h3>
+                  </div>
                 </div>
+
+                {qualityRejection.qualityScore !== undefined && (
+                  <div style={{ background: "#fee2e2", border: "1.5px solid #f87171", padding: "6px 14px", borderRadius: "10px", textAlign: "right" }}>
+                    <span style={{ fontSize: "11px", color: "#7f1d1d", fontWeight: "700", display: "block" }}>Quality Score</span>
+                    <span style={{ fontSize: "18px", fontWeight: "800", color: "#991b1b" }}>
+                      {qualityRejection.qualityScore} / 100
+                    </span>
+                    <span style={{ fontSize: "10px", color: "#991b1b", display: "block" }}>Min 65.0 needed</span>
+                  </div>
+                )}
               </div>
 
-              <div
-                style={{
-                  background: "#ffffff",
-                  padding: "16px",
-                  borderRadius: "8px",
-                  border: "1px solid #fee2e2",
-                  marginBottom: "16px",
-                }}
-              >
-                <p style={{ fontSize: "15px", color: "#991b1b", fontWeight: "700", marginBottom: "8px" }}>
-                  Reason: {qualityRejection.message}
-                </p>
-                <div style={{ fontSize: "13px", color: "#334155" }}>
-                  <strong>Recapture Guidance for Field Health Worker:</strong>
-                  <p style={{ marginTop: "4px", lineHeight: "1.5" }}>
-                    {qualityRejection.recaptureGuidance}
+              {/* Plain English Diagnostic Explanation with Medical Terms in Brackets */}
+              {qualityRejection.detailedExplanation && (
+                <div
+                  style={{
+                    background: "#ffffff",
+                    padding: "16px 18px",
+                    borderRadius: "10px",
+                    border: "1px solid #fecaca",
+                    marginBottom: "18px",
+                  }}
+                >
+                  <strong style={{ color: "#991b1b", fontSize: "13px", textTransform: "uppercase", letterSpacing: "0.04em", display: "block", marginBottom: "6px" }}>
+                    Why Was This Image Rejected?
+                  </strong>
+                  <p style={{ margin: 0, fontSize: "14px", color: "#334155", lineHeight: "1.65" }}>
+                    {qualityRejection.detailedExplanation}
                   </p>
                 </div>
-              </div>
+              )}
 
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+              {/* 5-Pillar Quality Criteria Evaluation Checklist */}
+              {qualityRejection.checks && qualityRejection.checks.length > 0 && (
+                <div style={{ marginBottom: "18px" }}>
+                  <span style={{ fontSize: "12px", fontWeight: "700", color: "#7f1d1d", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: "10px" }}>
+                    5-Pillar Quality Gate Breakdown:
+                  </span>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "10px" }}>
+                    {qualityRejection.checks.map((chk, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          background: chk.passed ? "#f0fdf4" : "#ffffff",
+                          border: `1.5px solid ${chk.passed ? "#86efac" : "#f87171"}`,
+                          borderRadius: "8px",
+                          padding: "12px 14px",
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                          <strong style={{ fontSize: "13px", color: chk.passed ? "#166534" : "#991b1b" }}>
+                            {chk.passed ? "✅" : "❌"} {chk.name}
+                          </strong>
+                          <span
+                            style={{
+                              fontSize: "10.5px",
+                              fontWeight: "700",
+                              padding: "2px 8px",
+                              borderRadius: "4px",
+                              background: chk.passed ? "#dcfce7" : "#fee2e2",
+                              color: chk.passed ? "#15803d" : "#b91c1c",
+                            }}
+                          >
+                            {chk.passed ? "PASSED" : "FAILED"}
+                          </span>
+                        </div>
+                        <p style={{ margin: "2px 0", fontSize: "11.5px", color: "#475569", lineHeight: "1.4" }}>
+                          {chk.description}
+                        </p>
+                        {chk.value && (
+                          <span style={{ fontSize: "11px", color: "#64748b", display: "block", marginTop: "4px" }}>
+                            <strong>Measured:</strong> {chk.value} • <em>({chk.requirement})</em>
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Actionable Step-by-Step Operator Recapture Instructions */}
+              {qualityRejection.recaptureGuidance && (
+                <div
+                  style={{
+                    background: "#ffffff",
+                    padding: "16px 18px",
+                    borderRadius: "10px",
+                    border: "1.5px solid #fed7aa",
+                    marginBottom: "20px",
+                    boxShadow: "0 2px 8px rgba(251, 146, 60, 0.08)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                    <span style={{ fontSize: "18px" }}>📷</span>
+                    <strong style={{ color: "#c2410c", fontSize: "13.5px" }}>
+                      Recapture Instructions for Health Worker / Operator:
+                    </strong>
+                  </div>
+                  <div style={{ fontSize: "13px", color: "#334155", lineHeight: "1.6" }}>
+                    {qualityRejection.recaptureGuidance.split("\n").map((line, idx) => (
+                      <p key={idx} style={{ margin: "4px 0" }}>
+                        {line}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+                <button
+                  className="btn btn-secondary"
+                  style={{ padding: "10px 20px", fontSize: "13px" }}
+                  onClick={() => navigate("/patient")}
+                >
+                  ← Change Patient Details
+                </button>
+
                 <button
                   className="btn btn-primary"
                   style={{ padding: "10px 24px", fontSize: "14px" }}
                   onClick={() => navigate("/upload")}
                 >
-                  ← Upload a Proper Fundus Photograph
+                  📁 Upload a Proper Fundus Photograph →
                 </button>
               </div>
             </div>
