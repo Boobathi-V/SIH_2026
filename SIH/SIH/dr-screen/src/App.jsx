@@ -7,6 +7,7 @@ import Analysis from "./pages/Analysis";
 import Result from "./pages/Result";
 import Explain from "./pages/Explain";
 import Report from "./pages/Report";
+import SimulinkWorkflowPage from "./pages/SimulinkWorkflowPage";
 
 function App() {
   return (
@@ -43,6 +44,11 @@ function App() {
         <Route
           path="/report"
           element={<Report />}
+        />
+
+        <Route
+          path="/simulink-workflow"
+          element={<SimulinkWorkflowPage />}
         />
 
       </Routes>

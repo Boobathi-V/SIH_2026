@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getSyncScreeningResult, idbGet } from "../storage";
+import VoiceAIBuddy from "../components/VoiceAIBuddy";
 
 const STAGE_LABELS = [
   "Class 0: No DR",
@@ -610,6 +611,9 @@ function Result() {
             Generate Official Report →
           </button>
         </div>
+
+        {/* VoiceAI Assistant (Buddy) Interactive Medical Chatbot */}
+        <VoiceAIBuddy result={result} />
 
       </div>
     </div>

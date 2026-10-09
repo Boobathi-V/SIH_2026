@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { resolveHeatmapUrl, resolveAnnotatedUrl } from "../api";
 import { getSyncScreeningResult, getSyncUploadedImage, idbGet } from "../storage";
+import VoiceAIBuddy from "../components/VoiceAIBuddy";
 
 function Report() {
   const navigate = useNavigate();
@@ -268,6 +269,9 @@ function Report() {
         </div>
 
       </div>
+
+      {/* VoiceAI Assistant (Buddy) Interactive Medical Chatbot */}
+      <VoiceAIBuddy result={result} />
     </div>
   );
 }

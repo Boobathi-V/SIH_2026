@@ -269,6 +269,15 @@ async def explain_fundus(
     return await predict_retina(file=file, include_base64=True)
 
 
+# Mount independent Simulink Workflow Simulation router
+from dr_screening.routes.simulink import router as simulink_router
+app.include_router(simulink_router)
+
+# Mount VoiceAI Assistant (Buddy) router
+from dr_screening.routes.chat import router as chat_router
+app.include_router(chat_router)
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)

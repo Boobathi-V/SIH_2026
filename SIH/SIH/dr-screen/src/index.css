@@ -245,7 +245,7 @@ h1, h2, h3, h4 {
   .page-container {
     padding: 0 !important;
   }
-  .btn, .no-print {
+  .btn, .no-print, .voice-ai-buddy-container {
     display: none !important;
   }
   .card {

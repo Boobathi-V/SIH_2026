@@ -56,13 +56,47 @@ function Home() {
               post-hoc confidence calibration, and visual Grad-CAM heatmaps for interpretable clinical decision support.
             </p>
 
-            <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px", alignItems: "flex-start" }}>
               <button
                 className="btn btn-primary"
                 style={{ padding: "14px 32px", fontSize: "16px" }}
                 onClick={() => navigate("/patient")}
               >
                 Start New Patient Screening →
+              </button>
+
+              <button
+                className="btn btn-outline"
+                style={{
+                  padding: "12px 28px",
+                  fontSize: "15px",
+                  fontWeight: "600",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  borderColor: "#0284c7",
+                  color: "#0284c7",
+                  background: "#ffffff",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                }}
+                onClick={() => navigate("/simulink-workflow")}
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="18" cy="18" r="3" />
+                  <circle cx="6" cy="6" r="3" />
+                  <path d="M13 6h3a2 2 0 0 1 2 2v7" />
+                  <path d="M6 9v12" />
+                </svg>
+                Test Simulink Workflow
               </button>
             </div>
           </div>
